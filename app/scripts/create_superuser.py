@@ -1,100 +1,91 @@
 import asyncio
-import os
-import sys
-from getpass import getpass  # For securely getting password input
+import typer  # You'll need to add 'typer' to your pyproject.toml dev-dependencies
+from sqlalchemy.ext.asyncio import AsyncSession
 
-# Add project root to Python path to allow importing 'app'
-# This assumes the script is in project_root/scripts/
-sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), "..")))
-
-from app.core.config import settings  # Your Pydantic settings
-from app.database.session import AsyncSessionFactory, async_engine, Base  # For DB interaction
+# Adjust path if your script is outside the main app structure
+# This assumes your script can import from 'app'
+# If running from project root: python -m scripts.create_superuser
+from app.core.config import settings  # To initialize DB if needed
+from app.database.session import AsyncSessionFactory, create_db_and_tables  # For session and table creation
 from app.schemas.user import UserCreate
 from app.services.user_service import UserService
-from app.database.models import User as UserModel  # To check if user exists
+from app.database.models import User as UserModel, Role as RoleModel  # For checking existing roles
+
+cli_app = typer.Typer()
 
 
-async def main():
-    print("--- Create Superuser Script ---")
+async def _create_superuser_logic(db: AsyncSession, email: 'ta', password: str, full_name: Optional[str] = None):
+    user_service = UserService(db)
+    print(f"Checking if user {email} already exists...")
+    user = await user_service.get_user_by_email(email=email)
 
-    # Ensure database tables are created (useful for first run)
-    # In production, migrations should handle this.
-    # async with async_engine.begin() as conn:
-    #     await conn.run_sync(Base.metadata.create_all)
-    # print("Database tables checked/created.")
-
-    async with AsyncSessionFactory() as session:
-        user_service = UserService(session)
-
-        email = input("taheri.sara1991@gmail.com").strip()
-        if not email:
-            print("Email cannot be empty.")
-            return
-
-        existing_user = await user_service.get_user_by_email(email=email)
-        if existing_user:
-            make_superuser = input(
-                f"User '{email}' already exists. Make this user a superuser? (yes/no): ").strip().lower()
-            if make_superuser == 'yes':
-                if existing_user.is_superuser:
-                    print(f"User '{email}' is already a superuser.")
-                    return
-                existing_user.is_superuser = True
-                session.add(existing_user)
-                await session.commit()
-                await session.refresh(existing_user)
-                print(f"User '{email}' has been promoted to superuser.")
-            else:
-                print("Operation cancelled.")
-            return
-
-        # If user does not exist, create a new one
-        full_name = input(f"sara").strip()
-
-        while True:
-            password = getpass(f"adminadmin")
-            if not password:
-                print("Password cannot be empty.")
-                continue
-            password_confirm = getpass("adminadmin")
-            if password == password_confirm:
-                break
-            else:
-                print("Passwords do not match. Please try again.")
-
+    if user:
+        if not user.is_superuser:
+            print(f"User {email} exists but is not a superuser. Updating to superuser.")
+            user.is_superuser = True
+            db.add(user)
+            # Optionally assign a "superuser" role if you have one
+        else:
+            print(f"User {email} already exists and is a superuser.")
+            # Optionally update password or other details if flags are provided
+    else:
+        print(f"Creating superuser {email}...")
         user_in = UserCreate(
             email=email,
             password=password,
-            full_name=full_name if full_name else None,
-            is_superuser=True,  # Explicitly set as superuser
-            is_active=True  # Activate by default
+            full_name=full_name if full_name else "Admin User",
+            is_superuser=True,
+            is_active=True,
+            role_ids=[]  # Optionally assign a specific "superuser" role ID here
         )
+        user = await user_service.create_user(user_in=user_in)
+        print(f"Superuser {user.email} created successfully.")
 
-        try:
-            created_user = await user_service.create_user(user_in=user_in)
-            print(f"Superuser '{created_user.email}' created successfully with ID: {created_user.id}")
-        except Exception as e:  # Catch potential exceptions from service (e.g., validation)
-            print(f"Error creating superuser: {e}")
+    # Example: Ensure a "superuser" or "admin" role exists and assign it
+    # admin_role_name = "Administrator" # Or "Superuser"
+    # role_query = await db.execute(select(RoleModel).where(RoleModel.name == admin_role_name))
+    # admin_role = role_query.scalars().first()
+    # if not admin_role:
+    #     print(f"Role '{admin_role_name}' not found. Please create it first or adjust script.")
+    # elif admin_role not in user.roles:
+    #     user.roles.append(admin_role)
+    #     db.add(user)
+    #     print(f"Assigned '{admin_role_name}' role to {user.email}")
+
+    await db.commit()
+    await db.refresh(user)
+    print(f"Superuser details: ID={user.id}, Email={user.email}, Is Superuser={user.is_superuser}")
+
+
+@cli_app.command()
+def create_admin(
+        email: str = typer.Option(..., "--email", "-e", help="Superuser's email address."),
+        password: str = typer.Option(
+            ...,
+            "--password",
+            "-p",
+            help="Superuser's password (will be prompted if not provided).",
+            prompt=True,
+            hide_input=True,  # Hides password input
+            confirmation_prompt=True,  # Asks for password confirmation
+        ),
+        full_name: Optional[str] = typer.Option(None, "--name", "-n", help="Superuser's full name."),
+):
+    """
+    Creates an administrative superuser in the database.
+    """
+
+    async def main():
+        print("Attempting to create database tables if they don't exist (for CLI setup)...")
+        # This is for convenience if running the script against a fresh DB
+        # In production, migrations should handle table creation.
+        # await create_db_and_tables() # Make sure your models are imported for Base.metadata
+
+        async with AsyncSessionFactory() as session:
+            await _create_superuser_logic(session, email, password, full_name)
+
+    asyncio.run(main())
 
 
 if __name__ == "__main__":
-    # Ensure environment variables for DB connection are loaded (e.g., from .env if script run locally)
-    # If running this script outside of an environment that loads .env automatically (like uvicorn/gunicorn),
-    # you might need to load it manually:
-    from dotenv import load_dotenv
-
-    # Adjust path to .env if script is not in project root
-    dotenv_path = os.path.join(os.path.dirname(__file__), '..', '.env')
-    if os.path.exists(dotenv_path):
-        load_dotenv(dotenv_path)
-        print(f".env file loaded from {dotenv_path}")
-    else:
-        print(f"Warning: .env file not found at {dotenv_path}. Ensure DB connection vars are set.")
-
-    # Check if settings are loaded, particularly DATABASE_URL
-    if not settings.DATABASE_URL:
-        print("Error: DATABASE_URL is not configured. Set POSTGRES_* environment variables.")
-        sys.exit(1)
-    print(f"Connecting to database: {str(settings.DATABASE_URL).split('@')[-1]}")  # Don't print password
-
-    asyncio.run(main())
+    cli_app()
