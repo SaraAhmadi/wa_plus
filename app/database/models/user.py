@@ -13,7 +13,7 @@ class User(Base):
     full_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    # username: Mapped[Optional[str]] = mapped_column(String(100), unique=True, index=True, nullable=True) # If separate username needed
+    username: Mapped[Optional[str]] = mapped_column(String(100), unique=True, index=True, nullable=True)
 
     roles: Mapped[List["Role"]] = relationship( # Forward reference "Role"
         "Role",

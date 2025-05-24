@@ -30,6 +30,21 @@ class UserService(BaseService[User, UserCreate, UserUpdate]):
         result = await self.db_session.execute(query)
         return result.scalars().first()
 
+    async def get_user_by_username(self, username: str) -> Optional[User]:
+        """
+        Get a user by their username.
+        Includes eager loading of roles and their permissions.
+        """
+        query = (
+            select(self.model)
+            .options(
+                selectinload(User.roles).selectinload(Role.permissions)
+            )
+            .where(self.model.username == username)
+        )
+        result = await self.db_session.execute(query)
+        return result.scalars().first()
+
     async def get_user_by_id_with_relations(self, user_id: int) -> Optional[User]:
         """
         Get a user by ID, including roles and permissions.
