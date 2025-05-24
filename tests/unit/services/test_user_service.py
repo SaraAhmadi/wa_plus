@@ -2,6 +2,8 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch  # AsyncMock for async methods
 
 from sqlalchemy.ext.asyncio import AsyncSession  # For type hinting
+from sqlalchemy.exc import IntegrityError # Added for duplicate username test
+
 
 from app.services.user_service import UserService
 from app.database.models.user import User as UserModel  # SQLAlchemy model
@@ -83,6 +85,7 @@ async def test_create_user_success(
     mock_get_password_hash.return_value = "hashed_super_password"
     user_in_schema = UserCreate(
         email="newuser@example.com",
+        username="genericuser", # Added username
         password="password123",
         full_name="New User",
         role_ids=[]  # No roles for simplicity in this test
@@ -106,6 +109,7 @@ async def test_create_user_success(
     added_user_arg = mock_db_session.add.call_args[0][0]  # Get the object passed to add
     assert isinstance(added_user_arg, UserModel)
     assert added_user_arg.email == user_in_schema.email
+    assert added_user_arg.username == user_in_schema.username # Added assertion
     assert added_user_arg.full_name == user_in_schema.full_name
     assert added_user_arg.hashed_password == "hashed_super_password"
     assert created_user.email == user_in_schema.email
@@ -123,6 +127,7 @@ async def test_create_user_with_roles(
     role_id_1, role_id_2 = 10, 11
     user_in_schema = UserCreate(
         email="roleuser@example.com",
+        username="roleuser1", # Added username
         password="password123",
         role_ids=[role_id_1, role_id_2]
     )
@@ -150,6 +155,8 @@ async def test_create_user_with_roles(
     mock_db_session.add.assert_called_once()
     added_user_arg = mock_db_session.add.call_args[0][0]
     assert added_user_arg.email == user_in_schema.email
+    assert added_user_arg.username == user_in_schema.username # Added assertion
+
 
     # Check that the query for roles was made
     assert mock_db_session.execute.call_count == 1  # For select(Role)
@@ -166,7 +173,7 @@ async def test_create_user_with_roles(
 @pytest.mark.asyncio
 async def test_update_user_success(user_service: UserService, mock_db_session: AsyncMock):
     # Arrange
-    existing_user = UserModel(id=1, email="old@example.com", hashed_password="old_pw", full_name="Old Name",
+    existing_user = UserModel(id=1, email="old@example.com", username="oldname", hashed_password="old_pw", full_name="Old Name",
                               is_active=True, roles=[])
     user_update_schema = UserUpdate(full_name="New Name", email="new@example.com")
 
@@ -196,7 +203,7 @@ async def test_update_user_password_change(
 ):
     # Arrange
     mock_get_password_hash.return_value = "new_hashed_password"
-    existing_user = UserModel(id=1, email="user@example.com", hashed_password="old_hashed_pw", roles=[])
+    existing_user = UserModel(id=1, email="user@example.com", username="user1", hashed_password="old_hashed_pw", roles=[])
     user_update_schema = UserUpdate(password="new_plain_password")
 
     async def mock_refresh(obj, attribute_names=None): return obj
@@ -215,7 +222,7 @@ async def test_update_user_password_change(
 @pytest.mark.asyncio
 async def test_deactivate_user(user_service: UserService, mock_db_session: AsyncMock):
     # Arrange
-    active_user = UserModel(id=1, email="active@example.com", is_active=True, roles=[])
+    active_user = UserModel(id=1, email="active@example.com", username="activeuser", is_active=True, roles=[])
 
     async def mock_refresh(obj): return obj  # Simplified refresh
 
@@ -234,7 +241,7 @@ async def test_deactivate_user(user_service: UserService, mock_db_session: Async
 @pytest.mark.asyncio
 async def test_get_multi_with_pagination(user_service: UserService, mock_db_session: AsyncMock):
     # Arrange
-    mock_users = [UserModel(id=i, email=f"user{i}@example.com", roles=[]) for i in range(5)]
+    mock_users = [UserModel(id=i, email=f"user{i}@example.com", username=f"user{i}", roles=[]) for i in range(5)]
     mock_db_session.execute.return_value.scalars.return_value.all.return_value = mock_users
 
     # Act
@@ -259,3 +266,131 @@ async def test_get_total_user_count(user_service: UserService, mock_db_session: 
     # Assert
     mock_db_session.execute.assert_called_once()
     assert count == 25
+
+# --- New tests for username functionality ---
+
+@pytest.mark.asyncio
+@patch("app.security.hashing.Hasher.get_password_hash")
+async def test_create_user_with_username(
+        mock_get_password_hash: MagicMock,
+        user_service: UserService,
+        mock_db_session: AsyncMock
+):
+    # Arrange
+    mock_get_password_hash.return_value = "hashed_username_password"
+    user_in_schema = UserCreate(
+        email="userwithname@example.com",
+        username="testuser",
+        password="password123",
+        full_name="Test User Name",
+        role_ids=[]
+    )
+
+    async def mock_refresh(obj, attribute_names=None): return obj
+    mock_db_session.refresh = AsyncMock(side_effect=mock_refresh)
+
+    # Act
+    created_user = await user_service.create_user(user_in=user_in_schema)
+
+    # Assert
+    mock_get_password_hash.assert_called_once_with("password123")
+    mock_db_session.add.assert_called_once()
+    mock_db_session.commit.assert_called_once()
+    # In create_user, refresh is called with attribute_names=['roles'] if roles are handled
+    # If no roles, it's just refresh(db_user)
+    # For this test, let's assume the simple case or ensure role_ids=[] leads to specific refresh args
+    # Based on user_service.py: await self.db_session.refresh(db_user, attribute_names=['roles'])
+    # So the following assertion should be correct.
+    added_user_arg = mock_db_session.add.call_args[0][0]
+    mock_db_session.refresh.assert_called_once_with(added_user_arg, attribute_names=['roles'])
+
+
+    assert isinstance(added_user_arg, UserModel)
+    assert added_user_arg.email == user_in_schema.email
+    assert added_user_arg.username == user_in_schema.username
+    assert added_user_arg.full_name == user_in_schema.full_name
+    assert added_user_arg.hashed_password == "hashed_username_password"
+    assert created_user.username == user_in_schema.username
+    assert created_user.email == user_in_schema.email # Also check email on returned obj
+
+
+@pytest.mark.asyncio
+async def test_get_user_by_username_found(user_service: UserService, mock_db_session: AsyncMock):
+    # Arrange
+    test_username = "founduser"
+    mock_user = UserModel(id=2, email="found@example.com", username=test_username, hashed_password="hashed_pw", is_active=True, roles=[])
+    # Ensure the mock chain for execute -> scalars -> first is correctly set up
+    mock_db_session.execute.return_value.scalars.return_value.first.return_value = mock_user
+
+
+    # Act
+    found_user = await user_service.get_user_by_username(username=test_username)
+
+    # Assert
+    mock_db_session.execute.assert_called_once()
+    assert found_user is not None
+    assert found_user.username == test_username
+    assert found_user == mock_user
+
+@pytest.mark.asyncio
+async def test_get_user_by_username_not_found(user_service: UserService, mock_db_session: AsyncMock):
+    # Arrange
+    test_username = "nonexistentuser"
+    mock_db_session.execute.return_value.scalars.return_value.first.return_value = None
+
+    # Act
+    found_user = await user_service.get_user_by_username(username=test_username)
+
+    # Assert
+    mock_db_session.execute.assert_called_once()
+    assert found_user is None
+
+@pytest.mark.asyncio
+async def test_update_user_username(user_service: UserService, mock_db_session: AsyncMock):
+    # Arrange
+    existing_user_model = UserModel(id=3, email="user@example.com", username="oldusername", hashed_password="pw", roles=[])
+    user_update_schema = UserUpdate(username="newusername")
+
+    async def mock_refresh(obj, attribute_names=None): return obj
+    mock_db_session.refresh = AsyncMock(side_effect=mock_refresh)
+
+    # Act
+    # Note: user_service.update_user takes the model instance, not id
+    updated_user = await user_service.update_user(user=existing_user_model, user_in=user_update_schema)
+
+    # Assert
+    mock_db_session.add.assert_called_once_with(existing_user_model)
+    mock_db_session.commit.assert_called_once()
+    mock_db_session.refresh.assert_called_once_with(existing_user_model, attribute_names=['roles'])
+    assert updated_user.username == "newusername"
+    assert updated_user.id == 3
+
+@pytest.mark.asyncio
+@patch("app.security.hashing.Hasher.get_password_hash")
+async def test_create_user_duplicate_username(
+    mock_get_password_hash: MagicMock, # Unused but kept for consistency if schema needs password
+    user_service: UserService,
+    mock_db_session: AsyncMock
+):
+    # Arrange
+    mock_get_password_hash.return_value = "hashed_password" # Needed by UserCreate if password is provided
+    user_in_schema = UserCreate(
+        email="duplicate@example.com",
+        username="existinguser",
+        password="password123", # UserCreate requires password
+        role_ids=[]
+    )
+
+    # Configure commit to raise IntegrityError
+    # Ensure the original exception is an actual exception instance
+    mock_db_session.commit = AsyncMock(side_effect=IntegrityError("duplicate key value violates unique constraint", params={}, orig=Exception("DB specific error")))
+
+
+    # Act & Assert
+    with pytest.raises(IntegrityError): # Assuming the service re-raises IntegrityError directly
+        await user_service.create_user(user_in=user_in_schema)
+
+    # Assert that add was called but refresh was not (due to commit error)
+    mock_db_session.add.assert_called_once()
+    # based on user_service, refresh is called after commit. If commit fails, refresh should not be called.
+    mock_db_session.refresh.assert_not_called()

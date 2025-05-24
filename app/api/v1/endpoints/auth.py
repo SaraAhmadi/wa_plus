@@ -25,13 +25,13 @@ async def login_for_access_token(
     """
     auth_service = AuthService(db)
     user = await auth_service.authenticate_user(
-        email=form_data.username, # OAuth2PasswordRequestForm uses 'username' for the first field
+        login_identifier=form_data.username, # OAuth2PasswordRequestForm uses 'username' for the first field
         password=form_data.password
     )
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
+            detail="Incorrect username/email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     if not user.is_active:

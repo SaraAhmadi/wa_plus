@@ -14,24 +14,29 @@ from app.database.models import User as UserModel, Role as RoleModel  # For chec
 cli_app = typer.Typer()
 
 
-async def _create_superuser_logic(db: AsyncSession, email: 'ta', password: str, full_name: Optional[str] = None):
+async def _create_superuser_logic(db: AsyncSession, email: str, username: str, password: str, full_name: Optional[str] = None):
     user_service = UserService(db)
-    print(f"Checking if user {email} already exists...")
-    user = await user_service.get_user_by_email(email=email)
+    # First, check by username as it should be unique
+    print(f"Checking if user with username '{username}' already exists...")
+    user = await user_service.get_user_by_username(username=username)
+    if not user:
+        # If not found by username, check by email as a fallback or for older records
+        print(f"No user with username '{username}' found. Checking by email '{email}'...")
+        user = await user_service.get_user_by_email(email=email)
 
     if user:
+        print(f"User found: ID={user.id}, Username='{user.username}', Email='{user.email}'.")
         if not user.is_superuser:
-            print(f"User {email} exists but is not a superuser. Updating to superuser.")
+            print(f"User '{user.username or user.email}' exists but is not a superuser. Updating to superuser.")
             user.is_superuser = True
             db.add(user)
-            # Optionally assign a "superuser" role if you have one
         else:
-            print(f"User {email} already exists and is a superuser.")
-            # Optionally update password or other details if flags are provided
+            print(f"User '{user.username or user.email}' already exists and is a superuser.")
     else:
-        print(f"Creating superuser {email}...")
+        print(f"Creating superuser {username} ({email})...")
         user_in = UserCreate(
             email=email,
+            username=username,
             password=password,
             full_name=full_name if full_name else "Admin User",
             is_superuser=True,
@@ -39,7 +44,7 @@ async def _create_superuser_logic(db: AsyncSession, email: 'ta', password: str, 
             role_ids=[]  # Optionally assign a specific "superuser" role ID here
         )
         user = await user_service.create_user(user_in=user_in)
-        print(f"Superuser {user.email} created successfully.")
+        print(f"Superuser {user.username} ({user.email}) created successfully.")
 
     # Example: Ensure a "superuser" or "admin" role exists and assign it
     # admin_role_name = "Administrator" # Or "Superuser"
@@ -53,12 +58,13 @@ async def _create_superuser_logic(db: AsyncSession, email: 'ta', password: str, 
     #     print(f"Assigned '{admin_role_name}' role to {user.email}")
 
     await db.commit()
-    await db.refresh(user)
-    print(f"Superuser details: ID={user.id}, Email={user.email}, Is Superuser={user.is_superuser}")
+    await db.refresh(user) # Ensure all attributes, including username, are loaded
+    print(f"Superuser details: ID={user.id}, Email='{user.email}', Username='{user.username}', Is Superuser={user.is_superuser}")
 
 
 @cli_app.command()
 def create_admin(
+        username: str = typer.Option(..., "--username", "-u", help="Superuser's username."),
         email: str = typer.Option(..., "--email", "-e", help="Superuser's email address."),
         password: str = typer.Option(
             ...,
@@ -82,7 +88,7 @@ def create_admin(
         # await create_db_and_tables() # Make sure your models are imported for Base.metadata
 
         async with AsyncSessionFactory() as session:
-            await _create_superuser_logic(session, email, password, full_name)
+            await _create_superuser_logic(session, email, username, password, full_name)
 
     asyncio.run(main())
 

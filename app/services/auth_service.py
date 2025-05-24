@@ -2,7 +2,7 @@ from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.models.user import User
-from app.schemas.user import UserCreate # Not typically used directly by auth service for creation
+# from app.schemas.user import UserCreate # Not typically used directly by auth service for creation
 from app.security.hashing import Hasher
 from .user_service import UserService # Depends on UserService
 
@@ -12,20 +12,29 @@ class AuthService:
         self.db_session = db_session
         self.user_service = UserService(db_session) # Instantiate UserService
 
-    async def authenticate_user(self, email: str, password: str) -> Optional[User]:
+    async def authenticate_user(self, login_identifier: str, password: str) -> Optional[User]:
         """
-        Authenticates a user by email and password.
+        Authenticates a user by login_identifier (email or username) and password.
         Returns the user object if authentication is successful, None otherwise.
         """
-        user = await self.user_service.get_user_by_email(email=email)
+        user: Optional[User] = None
+        if "@" in login_identifier:
+            user = await self.user_service.get_user_by_email(email=login_identifier)
+        
+        if not user: # If not found by email, or if login_identifier was not an email
+            user = await self.user_service.get_user_by_username(username=login_identifier)
+
         if not user:
-            return None
+            return None # User not found by either email or username
+        
         if not Hasher.verify_password(password, user.hashed_password):
-            return None
+            return None # Incorrect password
+        
         if not user.is_active:
             # Optionally, you might raise a specific exception here or return None
-            # For simplicity, returning None indicates auth failure for any reason
-            return None
+            # For simplicity, returning None indicates auth failure for any reason (like inactive)
+            return None # User is inactive
+            
         return user
 
     # Password reset logic could go here in the future
