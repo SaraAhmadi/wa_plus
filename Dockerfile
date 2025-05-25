@@ -67,7 +67,8 @@ ENV POETRY_HOME="/opt/poetry"
 # /opt/poetry/bin is where Poetry's shims/main executable might be.
 ENV PATH="$POETRY_HOME/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin"
 ENV DEBIAN_FRONTEND=noninteractive
-
+COPY --from=builder /opt/poetry /opt/poetry
+COPY --from=builder /usr/local/bin/ /usr/local/bin/
 # Install runtime system dependencies
 # *** YOU MUST VERIFY libprojXX and libgeos-cXX names ***
 RUN apt-get update && \
@@ -76,6 +77,7 @@ RUN apt-get update && \
     libgdal32 \
     libproj25 \
     libgeos-c1v5 \
+    postgresql-client \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
