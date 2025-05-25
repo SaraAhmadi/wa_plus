@@ -12,7 +12,7 @@ from app.database.models.base_model import Base as SQLAlchemyBase  # All your mo
 from app.dependencies import get_db  # The dependency we want to override
 
 # --- Test Database Setup ---
-# Use a separate test database (e.g., waplus_dashboard_db_test)
+# Use a separate test database (e.g., waplus_db_test)
 # Ensure this database exists or can be created.
 TEST_DATABASE_URL = str(settings.DATABASE_URL).replace(
     settings.POSTGRES_DB, f"{settings.POSTGRES_DB}_test"

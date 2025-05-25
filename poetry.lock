@@ -1,6 +1,6 @@
 [[package]]
 name = "alembic"
-version = "1.15.2"
+version = "1.16.1"
 description = "A database migration tool for SQLAlchemy."
 category = "main"
 optional = false
@@ -9,6 +9,7 @@ python-versions = ">=3.9"
 [package.dependencies]
 Mako = "*"
 SQLAlchemy = ">=1.4.0"
+tomli = {version = "*", markers = "python_version < \"3.11\""}
 typing-extensions = ">=4.12"
 
 [package.extras]
@@ -852,7 +853,7 @@ python-versions = ">=3.8"
 
 [[package]]
 name = "pydantic"
-version = "2.11.4"
+version = "2.11.5"
 description = "Data validation using Python type hints"
 category = "main"
 optional = false
@@ -1188,7 +1189,7 @@ test = ["pytest", "tornado (>=4.5)", "typeguard"]
 name = "tomli"
 version = "2.2.1"
 description = "A lil' TOML parser"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.8"
 
@@ -1202,7 +1203,7 @@ python-versions = ">=3.8"
 
 [[package]]
 name = "typing-inspection"
-version = "0.4.0"
+version = "0.4.1"
 description = "Runtime typing introspection tools"
 category = "main"
 optional = false

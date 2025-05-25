@@ -8,7 +8,7 @@ class FinancialAccount(Base):
     # As per SSR 8.4.15
 
     reporting_unit_id = Column(Integer, ForeignKey('reporting_units.id'), nullable=True)
-    infrastructure_id = Column(Integer, ForeignKey('infrastructure.id'), nullable=True)
+    infrastructure_id = Column(Integer, ForeignKey('infrastructures.id'), nullable=True)
     financial_account_type_id = Column(Integer, ForeignKey('financial_account_types.id'), nullable=False)
     crop_id = Column(Integer, ForeignKey('crops.id'), nullable=True) # If entry is crop-specific
 

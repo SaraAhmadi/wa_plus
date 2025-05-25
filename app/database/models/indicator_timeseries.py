@@ -8,7 +8,7 @@ class IndicatorTimeseries(Base):
     # As per SSR 8.4.4 (Note: SSR index was 8.4.2, but content matches 8.4.4)
 
     reporting_unit_id = Column(Integer, ForeignKey('reporting_units.id'), nullable=True, index=True)
-    infrastructure_id = Column(Integer, ForeignKey('infrastructure.id'), nullable=True, index=True) # Added from SSR 8.4.4
+    infrastructure_id = Column(Integer, ForeignKey('infrastructures.id'), nullable=True, index=True) # Added from SSR 8.4.4
     indicator_definition_id = Column(Integer, ForeignKey('indicator_definitions.id'), nullable=False, index=True) # Link to master indicator list
 
     timestamp = Column(DateTime, nullable=False, index=True)

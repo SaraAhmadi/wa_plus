@@ -14,7 +14,7 @@ class IndicatorDefinition(Base):
     description_local = Column(Text, nullable=True)
     data_type = Column(String(50), nullable=False) # e.g., "Numeric", "Categorical"
 
-    unit_of_measurement_id = Column(Integer, ForeignKey('units_of_measurement.id'), nullable=True)
+    unit_of_measurement_id = Column(Integer, ForeignKey('unit_of_measurements.id'), nullable=True)
     category_id = Column(Integer, ForeignKey('indicator_categories.id'), nullable=True)
     wa_sheet_reference = Column(String(50), nullable=True)
     is_spatial_raster = Column(Boolean, default=False, nullable=False) # If typically a raster
