@@ -110,6 +110,10 @@ RUN chmod u+x /app/entrypoint.sh
 # Optional: Debugging step to list contents of bin directories in final image
 # RUN ls -lA /usr/local/bin && ls -lA /opt/poetry/bin
 
+# --- Create and set permissions for Celery data directory ---
+RUN mkdir -p /app/celery_data && \
+    chown appuser:appgroup /app/celery_data
+
 USER appuser
 
 # Optional: Debugging step to check PATH and executables as appuser

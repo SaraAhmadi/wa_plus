@@ -17,7 +17,7 @@ class Infrastructure(Base):
 
     geom: Mapped[Optional[Any]] = mapped_column(Geometry(geometry_type='GEOMETRY', srid=4326, spatial_index=True), nullable=True)
     capacity: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    capacity_unit_id: Mapped[Optional[int]] = mapped_column(ForeignKey('units_of_measurement.id'), nullable=True)
+    capacity_unit_id: Mapped[Optional[int]] = mapped_column(ForeignKey('unit_of_measurements.id'), nullable=True)
     attributes: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True) # JSONB usually maps to dict
 
     infrastructure_type: Mapped["InfrastructureType"] = relationship(back_populates="infrastructure_items")

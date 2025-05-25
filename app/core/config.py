@@ -50,28 +50,35 @@ class Settings(BaseSettings):
         # If v is not a list or string, it's an unexpected type
         raise ValueError(f"BACKEND_CORS_ORIGINS: Invalid input type {type(v)} for value: {v}")
 
-    POSTGRES_SERVER: str = "db"
+    POSTGRES_SERVER: str = "localhost"
     POSTGRES_USER: str = "waplus_user"
-    POSTGRES_PASSWORD: str
-    POSTGRES_DB: str = "waplus_dashboard_db"
+    POSTGRES_PASSWORD: str # Loaded from .env
+    POSTGRES_DB: str = "waplus_dashboard_db" # Default value
     POSTGRES_PORT: int = 5432
     DATABASE_URL: Optional[PostgresDsn] = None
 
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def assemble_db_connection(cls, v: Optional[str], info: ValidationInfo) -> Any:
-        if isinstance(v, str) and v:
+        if isinstance(v, str):  # If DATABASE_URL is directly provided as a string
             return v
+
+        # 'info.data' contains the already validated fields of the model
         data_dict = info.data
-        if not data_dict:
-            raise ValueError("Cannot assemble DATABASE_URL: dependent field data not available.")
+        if not all(k in data_dict for k in
+                   ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_SERVER", "POSTGRES_DB", "POSTGRES_PORT"]):
+            # This might happen if environment variables are missing and no defaults are provided for these components
+            # Or if DATABASE_URL is None and this validator is still called (shouldn't typically happen without v)
+            raise ValueError(
+                "Missing one or more PostgreSQL connection components (USER, PASSWORD, SERVER, DB, PORT) to assemble DATABASE_URL.")
+
         return PostgresDsn.build(
             scheme="postgresql+asyncpg",
-            username=str(data_dict.get("POSTGRES_USER")),
-            password=str(data_dict.get("POSTGRES_PASSWORD")),
-            host=str(data_dict.get("POSTGRES_SERVER")),
-            port=str(data_dict.get("POSTGRES_PORT")),
-            path=f"/{data_dict.get('POSTGRES_DB') or ''}",
+            username=data_dict.get("POSTGRES_USER"),
+            password=data_dict.get("POSTGRES_PASSWORD"),
+            host=data_dict.get("POSTGRES_SERVER"),
+            port=data_dict.get("POSTGRES_PORT"),  # <<< CORRECTED: Pass as int (or None)
+            path=data_dict.get("POSTGRES_DB"),
         )
 
     SECRET_KEY: str = secrets.token_urlsafe(32)

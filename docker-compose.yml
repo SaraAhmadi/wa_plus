@@ -1,130 +1,205 @@
 version: '3.8'
 
 services:
+  # FastAPI Application
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: waplus_dashboard
+    container_name: waplus_dashboard_app # Changed from waplus_dashboard to avoid conflict if you also name the project that
     restart: unless-stopped
-    env_file: .env
+    env_file:
+      - .env # Loads variables from .env file first
     environment:
-      - APP_ENV=${APP_ENV:-development}
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      # Application specific settings
+      - APP_ENV=${APP_ENV:-production} # Default to production if not in .env
+      - DEBUG=${DEBUG:-False}
+
+      # Database connection (assembled by app.core.config.settings from these)
+      - POSTGRES_SERVER=db
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      # DATABASE_URL can be explicitly set to override assembly, but usually not needed here
+
+      # GeoServer URL for the app to know (e.g., for map_layers service)
       - GEOSERVER_URL=http://geoserver:8080/geoserver
-      - REDIS_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/1
-      - PYTHONPATH=/app
+
+      # Redis URL (assembled by app.core.config.settings or set directly)
+      - REDIS_HOST=redis
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_DB=${REDIS_DB:-0}
+      - REDIS_PASSWORD=${REDIS_PASSWORD} # Will be empty if not set in .env
+
+      # Poetry specific settings for running inside the container
+      - POETRY_VIRTUALENVS_CREATE=false
+      - POETRY_NO_INTERACTION=1
+      - PYTHONUNBUFFERED=1 # Good for seeing logs immediately
+      - PYTHONDONTWRITEBYTECODE=1
+
+      # For entrypoint.sh to conditionally run migrations
+      - RUN_MIGRATIONS=true
     volumes:
+      # Mount local code for development (live reload if uvicorn is run with --reload)
+      # For production, this is usually removed as code is baked into the image.
       - ./app:/app/app
-      - ./static:/app/static
-      - ./data_ingestion:/app/data_ingestion
       - ./alembic:/app/alembic
       - ./alembic.ini:/app/alembic.ini
       - ./gunicorn_conf.py:/app/gunicorn_conf.py
-      - ./pyproject.toml:/app/pyproject.toml
-      - ./poetry.lock:/app/poetry.lock
-      - ./entrypoint.sh:/app/entrypoint.sh
+      - ./entrypoint.sh:/app/entrypoint.sh # Ensure entrypoint is also available if modified locally
+      - ./data_ingestion:/app/data_ingestion # If used by the app service
+      # - ./data_external:/app/data_external # If used by the app service
+      # - ./static:/app/static # If serving static files directly from FastAPI app
+      # - ./data:/app/data # If app needs to write to a shared data dir (less common for app itself)
     ports:
-      - "${APP_PORT:-8000}:8000"
+      - "${APP_PORT:-8000}:8000" # Use APP_PORT from .env or default to 8000
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
-      geoserver:
-        condition: service_healthy
+      geoserver: # App might not strictly depend on GeoServer for startup, but good practice
+        condition: service_healthy # if map_layers endpoint is critical early on
     networks:
       - waplus_network
 
+  # PostgreSQL with PostGIS
   db:
-    image: postgis/postgis:15-3.3
+    image: postgis/postgis:15-3.3 # Using a specific recent version
     container_name: waplus_db
     restart: unless-stopped
-    env_file: .env
+    env_file:
+      - .env # Loads POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
+    # Environment variables are also explicitly listed for clarity and potential overrides
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_HOST_AUTH_METHOD=scram-sha-256 # More secure default
+      - PGDATA=/var/lib/postgresql/data/pgdata # Explicitly setting PGDATA
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./scripts/initdb:/docker-entrypoint-initdb.d
+      - postgres_data:/var/lib/postgresql/data/pgdata # Mount for PGDATA
+      - ./scripts/initdb:/docker-entrypoint-initdb.d # For initial DB setup scripts (e.g., creating extensions)
     ports:
-      - "${POSTGRES_EXPOSED_PORT:-5432}:5432"
+      - "${POSTGRES_PORT_HOST:-5432}:5432" # Use POSTGRES_PORT_HOST from .env or default
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -q"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 10 # Increased retries for slower DB init
     networks:
       - waplus_network
 
+  # GeoServer
   geoserver:
-    image: kartoza/geoserver:2.23.0
+    image: kartoza/geoserver:2.23.0 # Using a specific version
     container_name: waplus_geoserver
     restart: unless-stopped
-    env_file: .env
+    env_file:
+      - .env # Loads GEOSERVER_ADMIN_USER, GEOSERVER_ADMIN_PASSWORD etc.
+    environment:
+      - GEOSERVER_ADMIN_USER=${GEOSERVER_ADMIN_USER}
+      - GEOSERVER_ADMIN_PASSWORD=${GEOSERVER_ADMIN_PASSWORD}
+      - GEOSERVER_ADMIN_EMAIL=${GEOSERVER_ADMIN_EMAIL:-geoserver@example.com}
+      # GeoServer performance tuning (examples, adjust based on needs and resources)
+      - MAX_MEMORY=1G # e.g., 1G, 2G
+      - MIN_MEMORY=512M # e.g., 256M, 512M
+      # Other GeoServer specific env vars from kartoza image:
+      - GEOWEBCACHE_CACHE_DIR=/opt/geoserver/data_dir/gwc
+      - ENABLE_JSONP=true
+      - MAX_FILTER_RULES=20
+      - OPTIMIZE_LINE_WIDTH=false
+      - GEOSERVER_CSRF_WHITELIST=${APP_DOMAIN_NAME} # e.g. your.dashboard.com, if app is hosted and CSRF is enabled
     volumes:
-      - geoserver_data:/opt/geoserver/data_dir
+      - geoserver_data:/opt/geoserver/data_dir # GeoServer's main data directory
+      # - ./data/geoserver_data_dir_override:/opt/geoserver_override/data_dir # For specific overrides
+      # - ./data/geoserver_webapp_override:/opt/geoserver_override/webapp # For webapp customizations
     ports:
-      - "${GEOSERVER_EXPOSED_PORT:-8080}:8080"
+      - "${GEOSERVER_PORT_HOST:-8080}:8080"
+    depends_on:
+      db: # GeoServer needs the database to be ready if it connects to PostGIS stores
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://geoserver:8080/geoserver/web/"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/geoserver/web/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
-    depends_on:
-      db:
-        condition: service_healthy
+      start_period: 60s # Give GeoServer more time to start up initially
     networks:
       - waplus_network
 
+  # Redis for caching
   redis:
     image: redis:7-alpine
     container_name: waplus_redis
     restart: unless-stopped
+    # command: redis-server --requirepass ${REDIS_PASSWORD} # Uncomment if REDIS_PASSWORD is set
     volumes:
       - redis_data:/data
     ports:
-      - "${REDIS_EXPOSED_PORT:-6379}:6379"
+      - "${REDIS_PORT_HOST:-6379}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
-      timeout: 5s
+      timeout: 5s # Reduced timeout, ping is fast
       retries: 5
     networks:
       - waplus_network
 
+  # PGAdmin (optional, for database management)
   pgadmin:
-    image: dpage/pgadmin4:latest
+    image: dpage/pgadmin4:latest # Or pin a version like 7.2
     container_name: waplus_pgadmin
     restart: unless-stopped
-    env_file: .env
+    env_file:
+      - .env # Loads PGADMIN_DEFAULT_EMAIL, PGADMIN_DEFAULT_PASSWORD
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
+      - PGADMIN_LISTEN_PORT=80 # pgAdmin listens on port 80 inside the container
     volumes:
       - pgadmin_data:/var/lib/pgadmin
+      # You might want to mount a servers.json file to preconfigure DB connections
+      # - ./pgadmin_servers.json:/pgadmin4/servers.json
     ports:
-      - "${PGADMIN_EXPOSED_PORT:-5050}:80"
+      - "${PGADMIN_PORT_HOST:-5050}:80" # Host port maps to container's port 80
     depends_on:
       db:
         condition: service_healthy
     networks:
       - waplus_network
 
+  # Celery worker for async tasks (optional)
   celery_worker:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: waplus_celery_worker
-    command: celery -A app.worker.celery_app worker --loglevel=info
+    # The command from your Dockerfile's CMD will be used unless overridden here
+    # If your Dockerfile CMD is for Gunicorn, you MUST override command here for Celery:
+    command: poetry run celery -A app.worker.celery_app:celery_app worker -l info -Q default_queue # Example
     restart: unless-stopped
-    env_file: .env
+    env_file:
+      - .env
     environment:
-      - PYTHONPATH=/app
-      - APP_ENV=${APP_ENV:-development}
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      - REDIS_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/1
-    volumes:
+      - APP_ENV=${APP_ENV:-production}
+      - POSTGRES_SERVER=db
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - REDIS_HOST=redis
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_DB=${REDIS_DB:-0} # Celery might use a different DB number for broker/backend
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - POETRY_VIRTUALENVS_CREATE=false
+      - POETRY_NO_INTERACTION=1
+      - PYTHONPATH=/app # Ensure app module is findable by Celery
+      - RUN_MIGRATIONS=false # Celery workers should NOT run migrations
+    volumes: # Mount code for development consistency
       - ./app:/app/app
-      - ./data_ingestion:/app/data_ingestion
-      - ./pyproject.toml:/app/pyproject.toml
-      - ./poetry.lock:/app/poetry.lock
+      - ./data_ingestion:/app/data_ingestion # If tasks are here
     depends_on:
       db:
         condition: service_healthy
@@ -133,25 +208,39 @@ services:
     networks:
       - waplus_network
 
+  # Celery beat for scheduled tasks (optional)
   celery_beat:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: waplus_celery_beat
-    command: celery -A app.worker.celery_app beat --loglevel=info -S redbeat.RedBeatScheduler
+    command: poetry run celery -A app.worker.celery_app:celery_app beat -l info -s /app/celery_data/celerybeat-schedule
+    # Or for standard Celery beat:
+    # command: poetry run celery -A app.worker.celery_app:celery_app beat -l info
     restart: unless-stopped
-    env_file: .env
+    env_file:
+      - .env
     environment:
+      - APP_ENV=${APP_ENV:-production}
+      - POSTGRES_SERVER=db # etc. same as celery_worker
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - REDIS_HOST=redis
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_DB=${REDIS_DB:-0}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - POETRY_VIRTUALENVS_CREATE=false
+      - POETRY_NO_INTERACTION=1
       - PYTHONPATH=/app
-      - APP_ENV=${APP_ENV:-development}
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      - REDIS_URL=redis://redis:6379/0
-      - CELERY_REDBEAT_REDIS_URL=redis://redis:6379/2
-    volumes:
+      - RUN_MIGRATIONS=false # Celery beat should NOT run migrations
+      - POETRY_VIRTUALENVS_CREATE=false
+      - POETRY_NO_INTERACTION=1
+    volumes: # Mount code for development consistency
       - ./app:/app/app
-      - ./data_ingestion:/app/data_ingestion
-      - ./pyproject.toml:/app/pyproject.toml
-      - ./poetry.lock:/app/poetry.lock
+      - ./data_ingestion:/app/data_ingestion # If tasks are here
+      - celery_beat_schedule_data:/app/celery_data
     depends_on:
       db:
         condition: service_healthy
@@ -160,43 +249,51 @@ services:
     networks:
       - waplus_network
 
+#   Traefik for reverse proxy (optional, advanced setup)
   traefik:
-    image: traefik:v2.10
-    container_name: waplus_traefik
-    command:
-      - --api.insecure=true
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      - --entrypoints.web.address=:80
-    ports:
-      - "80:80"
-      - "443:443"
-      - "8081:8080"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    networks:
-      - waplus_network
+     image: traefik:v2.10
+     container_name: waplus_traefik
+     command:
+       - --api.dashboard=true # Enable dashboard (be careful in prod, secure it)
+       # - --api.insecure=true # For local dev dashboard access without auth
+       - --log.level=DEBUG
+       - --providers.docker=true
+       - --providers.docker.exposedbydefault=false
+       - --entrypoints.web.address=:80
+       # - --entrypoints.websecure.address=:443 # For HTTPS
+       # - --certificatesresolvers.myresolver.acme.tlschallenge=true # For Let's Encrypt
+       # - --certificatesresolvers.myresolver.acme.email=your-email@example.com
+       # - --certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json
+     ports:
+       - "80:80"   # HTTP
+       - "443:443" # HTTPS (if configured)
+       - "8081:8080" # Traefik dashboard (internal port 8080)
+     volumes:
+       - /var/run/docker.sock:/var/run/docker.sock:ro # Allow Traefik to listen to Docker events
+       # - ./letsencrypt:/letsencrypt # Volume for Let's Encrypt certificates
+     networks:
+       - waplus_network
+     labels: # Labels for Traefik itself if you want to access its dashboard via Traefik
+       - "traefik.enable=true"
+       - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.localhost`)" # Example local hostname
+       - "traefik.http.routers.traefik-dashboard.service=api@internal"
+       - "traefik.http.routers.traefik-dashboard.entrypoints=web"
+       # Add middleware for basic auth on dashboard in production
+       # - "traefik.http.routers.traefik-dashboard.middlewares=traefik-auth"
+       # - "traefik.http.middlewares.traefik-auth.basicauth.users=user:$$apr1$$...$$..."
 
-#  flower:
-#    image: mher/flower
-#    command: flower --app=app.worker.celery_app --port=5555 --broker=redis://redis:6379/1
-#    ports:
-#      - "5555:5555"
-#    depends_on:
-#      - redis
-#      - celery_worker
-#    networks:
-#      - waplus_network
-#    environment:
-#      - CELERY_BROKER_URL=redis://redis:6379/0  # Must match worker
 
 volumes:
   postgres_data:
+    # driver: local # Default driver
   geoserver_data:
   redis_data:
   pgadmin_data:
-  celery_beat_volume:  # Added for Celery Beat persistence
+  celery_beat_schedule_data:
+
+  # letsencrypt: # If using Traefik with Let's Encrypt
 
 networks:
   waplus_network:
     driver: bridge
+    # name: waplus_shared_network # If you want to explicitly name it

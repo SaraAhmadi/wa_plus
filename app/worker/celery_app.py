@@ -1,31 +1,55 @@
-# app/worker/celery_app.py
+# app/worker/celery_app.py (or wherever your celery_app is defined)
 from celery import Celery
+from celery.schedules import crontab
 from app.core.config import settings
 
+redis_url_str = str(settings.REDIS_URL)
+
 celery_app = Celery(
-    "waplus",
-    broker=str(settings.REDIS_URL),  # e.g. redis://redis:6379/0
-    backend=str(settings.REDIS_URL).rsplit('/', 1)[0] + "/1"  # Different DB for results
+    "waplus_tasks",
+    broker=redis_url_str,
+    backend=redis_url_str,
+    include=[
+        'app.worker.tasks' # Module where your tasks are defined
+    ]
 )
 
-# Celery configuration
 celery_app.conf.update(
-    task_serializer="json",
-    result_serializer="json",
-    accept_content=["json"],
-    timezone="UTC",
+    task_serializer='json',
+    accept_content=['json'],
+    result_serializer='json',
+    timezone='UTC', # Example timezone
     enable_utc=True,
-
-    # Add your timeout settings here along with other conf settings
-    task_soft_time_limit=300,  # 5 minutes (soft limit - raises SoftTimeLimitExceeded)
-    task_time_limit=600,  # 10 minutes (hard limit - kills the task)
-
-    # Other configuration options...
-    task_default_queue="default",
-    worker_prefetch_multiplier=1,
-    broker_connection_retry_on_startup=True,
 )
 
+# Define your periodic tasks here if not using django-celery-beat
+celery_app.conf.beat_schedule = {
+    'add-every-30-seconds': {
+        'task': 'app.worker.tasks.add', # Path to your task
+        'schedule': 30.0, # In seconds
+        'args': (16, 16)
+    },
+    'run-daily-report-at-midnight': {
+        'task': 'app.worker.tasks.generate_daily_report',
+        'schedule': crontab(hour=0, minute=0), # Runs daily at midnight
+    },
+}
 
-celery_app.conf.beat_scheduler = "redbeat.RedBeatScheduler"
-celery_app.conf.redbeat_redis_url = "redis://redis:6379/3"  # Use DB 3
+# You would also need an app/worker/tasks.py file
+# --- START OF EXAMPLE app/worker/tasks.py ---
+# from .celery_app import celery_app
+#
+# @celery_app.task
+# def add(x, y):
+#     return x + y
+#
+# @celery_app.task
+# def generate_daily_report():
+#     print("Generating daily report...")
+#     # Your report generation logic
+#     return "Report generated"
+# --- END OF EXAMPLE app/worker/tasks.py ---
+
+
+if __name__ == '__main__':
+    celery_app.start()
