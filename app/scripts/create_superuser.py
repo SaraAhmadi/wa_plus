@@ -1,7 +1,7 @@
 import asyncio
 import typer  # You'll need to add 'typer' to your pyproject.toml dev-dependencies
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from typing import Optional
 # Adjust path if your script is outside the main app structure
 # This assumes your script can import from 'app'
 # If running from project root: python -m scripts.create_superuser

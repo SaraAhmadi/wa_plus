@@ -14,20 +14,22 @@ from app.core.config import settings
 router = APIRouter()
 
 
-@router.post("/token", response_model=Token)
+@router.post("/login", response_model=Token)
 async def login_for_access_token(
     db: AsyncSession = Depends(get_db),
     form_data: OAuth2PasswordRequestForm = Depends()
 ):
     """
     OAuth2 compatible token login, get an access token for future requests.
+    The 'username' field in the form data can be either the user's username or their email address.
     Corresponds to SSR 8.5.6 POST /api/v1/auth/token
     """
     auth_service = AuthService(db)
     user = await auth_service.authenticate_user(
-        login_identifier=form_data.username, # OAuth2PasswordRequestForm uses 'username' for the first field
+        login_identifier=form_data.username,
         password=form_data.password
     )
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -71,7 +73,7 @@ async def read_users_me(
 
 
 # Example of a test route for authenticated users
-@router.post("/token/test", response_model=UserSchema)
+@router.post("/token/test/", response_model=UserSchema)
 async def test_token(current_user: UserSchema = Depends(get_current_user)):
     """
     Test endpoint to verify token authentication.
