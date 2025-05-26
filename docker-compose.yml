@@ -11,6 +11,7 @@ services:
     env_file:
       - .env # Loads variables from .env file first
     environment:
+      - SERVICE_ROLE=app # This service will run migrations
       # Application specific settings
       - APP_ENV=${APP_ENV:-production} # Default to production if not in .env
       - DEBUG=${DEBUG:-False}
@@ -85,9 +86,9 @@ services:
       - "${POSTGRES_PORT_HOST:-5432}:5432" # Use POSTGRES_PORT_HOST from .env or default
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -q"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 10 # Increased retries for slower DB init
+      retries: 15 # Increased retries for slower DB init
     networks:
       - waplus_network
 
@@ -183,6 +184,7 @@ services:
     env_file:
       - .env
     environment:
+      - SERVICE_ROLE=celery_worker # This will skip migrations
       - APP_ENV=${APP_ENV:-production}
       - POSTGRES_SERVER=db
       - POSTGRES_USER=${POSTGRES_USER}
@@ -221,6 +223,7 @@ services:
     env_file:
       - .env
     environment:
+      - SERVICE_ROLE=celery_worker # This will skip migrations
       - APP_ENV=${APP_ENV:-production}
       - POSTGRES_SERVER=db # etc. same as celery_worker
       - POSTGRES_USER=${POSTGRES_USER}
