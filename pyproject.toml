@@ -35,8 +35,11 @@ celery = "^5.3.0"
 # Optional for Caching
 redis = "^5.0.1"
 
+typer = "^0.15.4"
+
 readbot = "^1.0"
 celery-redbeat = "^2.3.2"
+
 
 
 [tool.poetry.dev-dependencies]

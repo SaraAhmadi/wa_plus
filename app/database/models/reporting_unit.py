@@ -1,5 +1,5 @@
 from sqlalchemy import String, Float, Text, ForeignKey, Integer
-from sqlalchemy.orm import relationship, Mapped, mapped_column
+from sqlalchemy.orm import relationship, Mapped, mapped_column, remote
 from typing import List, Optional, Any # For type hints
 from geoalchemy2 import Geometry
 from .base_model import Base
@@ -19,7 +19,10 @@ class ReportingUnit(Base):
     parent_unit_id: Mapped[Optional[int]] = mapped_column(ForeignKey('reporting_units.id'), nullable=True, index=True)
 
     unit_type: Mapped["ReportingUnitType"] = relationship(back_populates="reporting_units") # Forward reference
-    parent_unit: Mapped[Optional["ReportingUnit"]] = relationship(remote_side=[Base.id], back_populates="child_units")
+    parent_unit: Mapped[Optional["ReportingUnit"]] = relationship(
+        primaryjoin=lambda: ReportingUnit.parent_unit_id == remote(ReportingUnit.id),
+        back_populates="child_units"
+    )
     child_units: Mapped[List["ReportingUnit"]] = relationship(back_populates="parent_unit") # For easier traversal
 
     # Relationships to other tables
