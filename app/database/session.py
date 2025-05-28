@@ -2,66 +2,56 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from typing import AsyncGenerator
 
-from app.core.config import settings
+from app.core.config import settings # Your Pydantic settings instance
 from app.database.models.base_model import Base # To ensure Base is known for metadata creation
 
 # Create an asynchronous engine instance.
-# The 'echo=True' argument will log all SQL statements issued to the database,
-# which is useful for debugging during development. Set to False in production.
+# The 'echo=settings.DEBUG' will log SQL statements if DEBUG is True.
 async_engine = create_async_engine(
-    str(settings.DATABASE_URL),  # Ensure DATABASE_URL is a string
-    echo=settings.DEBUG,         # Log SQL queries if DEBUG is True
-    pool_pre_ping=True,          # Test connections before handing them out from the pool
-    # Adjust pool size based on expected concurrency and database limits
-    # pool_size=10,
-    # max_overflow=20,
+    str(settings.DATABASE_URL),     # Ensure DATABASE_URL from settings is a string
+    echo=settings.DEBUG,            # Log SQL queries if DEBUG is True
+    pool_pre_ping=True,             # Test connections before handing them out
+    connect_args={"server_settings": {"timezone": "utc"}} # <<< CRITICAL: Set session timezone to UTC
 )
 
-# Create an asynchronous session class.
-# - expire_on_commit=False: Prevents SQLAlchemy from expiring attributes on instances
-#   after a commit. This can be useful in async contexts or if you need to access
-#   attributes of an object after it has been committed and the session is closed.
-# - class_=AsyncSession: Specifies that we are creating an asynchronous session.
+# Create an asynchronous session class factory.
 AsyncSessionFactory = sessionmaker(
     bind=async_engine,
     class_=AsyncSession,
-    expire_on_commit=False,
-    autoflush=False, # Recommended to manage flush manually in async code
-    autocommit=False # Recommended to manage commit manually
+    expire_on_commit=False, # Keep objects accessible after commit
+    autoflush=False,        # Manage flush manually in async code
+    autocommit=False        # Manage commit manually
 )
 
 
 async def get_async_db_session() -> AsyncGenerator[AsyncSession, None]:
     """
-    Dependency to get an asynchronous database session.
-    This will be injected into API route handlers.
-    It ensures the session is properly closed after the request is handled.
+    FastAPI dependency to get an asynchronous database session.
+    Ensures the session is properly closed after the request.
     """
     async with AsyncSessionFactory() as session:
         try:
             yield session
-            # If no exceptions, and if your service layer doesn't explicitly commit,
-            # you might consider a commit here, but typically services handle commits.
-            # await session.commit() # Generally, commit within service logic for transactional control
+            # Commits should ideally happen within service layers for transactional control.
+            # If a service doesn't commit, and you want to commit at the end of a successful request:
+            # await session.commit() # But this is usually too broad.
         except Exception:
-            await session.rollback() # Rollback in case of any exception during the request handling
+            await session.rollback() # Rollback in case of any exception
             raise
         finally:
-            await session.close() # Ensure session is closed
+            await session.close() # Ensure session is always closed
 
 
 async def create_db_and_tables():
     """
-    (Optional Utility) Creates all database tables defined in SQLAlchemy models.
-    This is typically run once when setting up the application or during migrations.
-    For production, Alembic is preferred for managing schema migrations.
+    (Optional Utility for Dev/Test) Creates all database tables defined in SQLAlchemy models.
+    For production, always use Alembic migrations.
     """
     async with async_engine.begin() as conn:
-        # For creating all tables based on Base.metadata
-        # Make sure all your models are imported somewhere so Base.metadata knows about them.
-        # Often, importing them in models/__init__.py is sufficient.
+        # Ensure all your models are imported somewhere (e.g., in models/__init__.py)
+        # so that Base.metadata is populated before this call.
         await conn.run_sync(Base.metadata.create_all)
-    # print("Database tables created (if they didn't exist).")
+    print("Development: Database tables created/checked via create_db_and_tables().")
 
 
 async def drop_db_and_tables():
@@ -71,24 +61,13 @@ async def drop_db_and_tables():
     """
     async with async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
-    # print("Database tables dropped.")
+    print("Development: Database tables dropped via drop_db_and_tables().")
 
-
+# Example for standalone script execution (not typically run this way for FastAPI)
 if __name__ == "__main__":
-    # Example of how to use create_db_and_tables (run this script directly)
-    # Ensure your .env file is set up for DATABASE_URL
     import asyncio
-
-    async def main():
-        print(f"Attempting to connect to DB: {settings.DATABASE_URL}")
-        # You might want to create tables using Alembic instead for a real project
+    async def _test_setup():
+        print(f"Using DATABASE_URL: {settings.DATABASE_URL}")
         await create_db_and_tables()
-        # await drop_db_and_tables() # Uncomment with caution to drop tables
-
-    # For Python 3.7+
-    # asyncio.run(main())
-
-    # For older Pythons or specific event loop needs:
-    # loop = asyncio.get_event_loop()
-    # loop.run_until_complete(main())
-    pass # Keep the if __name__ block minimal or for simple tests
+        # await drop_db_and_tables() # Be careful
+    asyncio.run(_test_setup())

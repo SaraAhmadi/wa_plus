@@ -1,5 +1,6 @@
 # app/utils/common_helpers.py
 from datetime import datetime, timezone
+from typing import Optional, List, Any, Dict, Type, TypeVar
 
 
 def get_utc_now() -> datetime:
