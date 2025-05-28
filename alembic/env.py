@@ -42,6 +42,19 @@ if not config.get_main_option("sqlalchemy.url"):
     print(f"Alembic (env.py): Set synchronous sqlalchemy.url for offline/generation: {sync_db_url}")
 
 
+# This function can be defined globally in env.py or within the run_migrations_ Fns
+def include_object(object, name, type_, reflected, compare_to):
+    """
+    Should you include this table or sequence in the autogenerate pass?
+    Return True if you want to include it, False if you want to ignore it.
+    """
+    if type_ == "table" and name in ["spatial_ref_sys", "geometry_columns", "raster_columns", "raster_overviews"]:
+        # Add other PostGIS-specific or extension-managed tables here if needed
+        return False
+    else:
+        return True
+
+
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode."""
     url = config.get_main_option("sqlalchemy.url")
@@ -51,6 +64,8 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
         compare_type=True,
+        # Add include_object to filter out PostGIS tables during autogenerate comparison
+        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -63,6 +78,8 @@ def do_run_migrations(connection) -> None:
         connection=connection,
         target_metadata=target_metadata,
         compare_type=True,
+        # Add include_object to filter out PostGIS tables during autogenerate comparison
+        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -74,7 +91,7 @@ async def run_migrations_online() -> None:
     connectable = create_async_engine(
         str(settings.DATABASE_URL),
         pool_pre_ping=True,
-        # poolclass=pool.NullPool # Optional, often good for migration scripts
+        poolclass=pool.NullPool # Optional, often good for migration scripts
     )
     print(f"Alembic (env.py): Running online migrations with ASYNC URL: {settings.DATABASE_URL}")
 
