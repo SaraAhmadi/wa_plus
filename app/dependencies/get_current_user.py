@@ -2,9 +2,11 @@ from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from jose import JWTError # Already imported in token_utils but good to have context
 
 from app.core.config import settings
+from app.database.models.role import Role # For type hinting and relationship path
 from app.schemas.token import TokenData
 from app.database.models.user import User # Your SQLAlchemy User model
 # We'll need a service to fetch the user from the DB by email/ID
@@ -45,9 +47,16 @@ async def get_current_user(
 
     # Placeholder for direct DB query until user_service is implemented:
     from sqlalchemy import select # Local import for this placeholder
-    user_query = select(User).where(User.email == token_data.email)
+    # Ensure User.roles and Role.permissions are eager loaded
+    user_query = (
+        select(User)
+        .options(
+            selectinload(User.roles).selectinload(Role.permissions)
+        )
+        .where(User.email == token_data.email)
+    )
     result = await db.execute(user_query)
-    user: Optional[User] = result.scalars().first()
+    user: Optional[User] = result.scalars().unique().first() # .unique() is good practice with selectinload
     # End placeholder
 
     if user is None:
@@ -91,9 +100,17 @@ async def get_optional_current_user(
 
         # Placeholder for direct DB query (replace with service)
         from sqlalchemy import select
-        user_query = select(User).where(User.email == token_data.email)
+        # For optional user, eager loading might also be beneficial if the user object is used
+        # in a way that would trigger lazy loads.
+        user_query = (
+            select(User)
+            .options(
+                selectinload(User.roles).selectinload(Role.permissions)
+            )
+            .where(User.email == token_data.email)
+        )
         result = await db.execute(user_query)
-        user: Optional[User] = result.scalars().first()
+        user: Optional[User] = result.scalars().unique().first()
         # End placeholder
 
         if user and user.is_active:

@@ -42,20 +42,26 @@ async def create_user_by_admin(
     return user
 
 
-@router.get("/", response_model=PaginatedResponse[UserSchema]) # This will now work
+@router.get("/", response_model=PaginatedResponse[UserSchema])
 async def read_users_by_admin(
-    # ...
-) -> PaginatedResponse[UserSchema]: # Type hint the return for clarity
-    # ...
-    # users_list will be List[UserModel] from service
-    # Pydantic will handle conversion to List[UserSchema] for items if necessary when creating PaginatedResponse
-    return PaginatedResponse[UserSchema]( # Explicitly parameterize if needed for instantiation,
-                                        # though FastAPI often infers from response_model
+    db: AsyncSession = Depends(get_db),
+    skip: int = Query(0, description="Number of records to skip for pagination", ge=0),
+    limit: int = Query(100, description="Maximum number of records to return", ge=1, le=200)
+) -> PaginatedResponse[UserSchema]:
+    """
+    Retrieve users with pagination.
+    Corresponds to SSR 8.5.6 GET /api/v1/admin/users
+    """
+    user_service = UserService(db)
+    total_users = await user_service.get_total_user_count()
+    users_list = await user_service.get_multi_with_pagination(skip=skip, limit=limit)
+
+    return PaginatedResponse[UserSchema](
         total=total_users,
-        page=(skip // limit) + 1,
-        size=len(users_list), # Use actual number of items returned for current page
-        pages=(total_users + limit -1) // limit if limit > 0 else 0,
-        items=users_list # Pass the list of SQLAlchemy models or Pydantic UserSchema models
+        page=(skip // limit) + 1 if limit > 0 else 1, # Ensure page is at least 1
+        size=len(users_list),
+        pages=(total_users + limit - 1) // limit if limit > 0 else (1 if total_users > 0 else 0), # Handle limit=0 or total_users=0
+        items=users_list
     )
 
 
