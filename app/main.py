@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager # For lifespan events in newer FastAP
 
 from app.core.config import settings
 from app.api.v1.api_router_v1 import api_router_v1 # Your main v1 API router
-from app.services_external.redis_client import RedisClient
+# from app.services_external.redis_client import RedisClient # REMOVED
 # from app.database.session import create_db_and_tables # Optional: for initial setup during development
 
 
@@ -15,17 +15,11 @@ from app.services_external.redis_client import RedisClient
 async def lifespan(app: FastAPI):
     # --- Startup ---
     print(f"Starting up {settings.PROJECT_NAME} v{settings.PROJECT_VERSION}...")
-    # Attempt to initialize Redis client on startup (optional, but good for early failure detection)
-    try:
-        await RedisClient.get_client_instance() # This will initialize if not already
-    except ConnectionError as e:
-        print(f"LIFESPAN STARTUP: Failed to connect to Redis during startup: {e}. Caching will be unavailable.")
     # ... other startup logic ...
     print("Application startup complete.")
     yield
     # --- Shutdown ---
     print(f"Shutting down {settings.PROJECT_NAME}...")
-    await RedisClient.close_global_client() # Properly close the Redis connection
     # ... other shutdown logic ...
     print("Application shutdown complete.")
 

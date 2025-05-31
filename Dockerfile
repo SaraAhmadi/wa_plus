@@ -20,13 +20,6 @@ RUN apt-get update && \
     wget \
     gnupg \
     ca-certificates \
-    gdal-bin \
-    libgdal-dev \
-    libproj-dev \
-    libgeos-dev \
-    && echo "--- GDAL version installed in builder stage: ---" \
-    && (gdalinfo --version || echo "gdalinfo not found, gdal-bin might not be fully installed or in PATH") \
-    && echo "--------------------------------------------" \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -51,7 +44,6 @@ RUN poetry config virtualenvs.create false && \
     (which alembic || echo "alembic not in PATH") && \
     (which gunicorn || echo "gunicorn not in PATH") && \
     (which uvicorn || echo "uvicorn not in PATH") && \
-    (which celery || echo "celery not in PATH") && \
     echo "----------------------------------------------------"
 
 
@@ -74,9 +66,6 @@ COPY --from=builder /usr/local/bin/ /usr/local/bin/
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     libpq5 \
-    libgdal32 \
-    libproj25 \
-    libgeos-c1v5 \
     postgresql-client \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -96,7 +85,6 @@ COPY --from=builder /opt/poetry/ /opt/poetry/
 
 # Copy application code and necessary configuration files
 COPY --chown=appuser:appgroup ./app /app/app
-COPY --chown=appuser:appgroup ./data_ingestion /app/data_ingestion
 # COPY --chown=appuser:appgroup ./data_external /app/data_external # If exists and needed
 COPY --chown=appuser:appgroup ./gunicorn_conf.py /app/gunicorn_conf.py
 COPY --chown=appuser:appgroup ./alembic.ini /app/alembic.ini
@@ -109,10 +97,6 @@ RUN chmod u+x /app/entrypoint.sh
 
 # Optional: Debugging step to list contents of bin directories in final image
 # RUN ls -lA /usr/local/bin && ls -lA /opt/poetry/bin
-
-# --- Create and set permissions for Celery data directory ---
-RUN mkdir -p /app/celery_data && \
-    chown appuser:appgroup /app/celery_data
 
 USER appuser
 

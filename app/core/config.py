@@ -85,28 +85,6 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 1
     JWT_ALGORITHM: str = "HS256"
 
-    REDIS_HOST: str = "redis"
-    REDIS_PORT: int = 6379
-    REDIS_DB: int = 0
-    REDIS_PASSWORD: Optional[str] = None
-    REDIS_URL: Optional[str] = None
-
-    @field_validator("REDIS_URL", mode="before")
-    @classmethod
-    def assemble_redis_url(cls, v: Optional[str], info: ValidationInfo) -> Any:
-        if isinstance(v, str) and v:
-            return v
-        data_dict = info.data
-        if not data_dict:
-            raise ValueError("Cannot assemble REDIS_URL: dependent field data not available.")
-        password_part = f":{data_dict.get('REDIS_PASSWORD')}@" if data_dict.get("REDIS_PASSWORD") else ""
-        return f"redis://{password_part}{data_dict.get('REDIS_HOST')}:{data_dict.get('REDIS_PORT')}/{data_dict.get('REDIS_DB')}"
-
-    GEOSERVER_URL: Optional[AnyHttpUrl] = None
-    GEOSERVER_ADMIN_USER: Optional[str] = None
-    GEOSERVER_ADMIN_PASSWORD: Optional[str] = None
-    WA_PLUS_DATA_SOURCE_PATH: str = "/srv/waplus_data/incoming"
-    WA_PLUS_PROCESSED_DATA_PATH: str = "/srv/waplus_data/processed"
     MAINTENANCE_MODE: bool = False
     MAX_FILE_SIZE_MB: int = 50
 
@@ -127,7 +105,7 @@ if settings.DEBUG:
     logger.info(f"Settings loaded: PROJECT_NAME='{settings.PROJECT_NAME}', DEBUG={settings.DEBUG}")
     try:
         sensitive_excluded_settings = settings.model_dump(
-            exclude={'POSTGRES_PASSWORD', 'SECRET_KEY', 'REDIS_PASSWORD', 'GEOSERVER_ADMIN_PASSWORD'}
+            exclude={'POSTGRES_PASSWORD', 'SECRET_KEY'}
         )
         logger.debug(f"Full settings (excluding sensitive): {sensitive_excluded_settings}")
     except Exception as e:
