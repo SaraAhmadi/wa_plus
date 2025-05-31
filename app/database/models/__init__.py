@@ -8,6 +8,10 @@ from .role_permission import user_roles_association, role_permissions_associatio
 from .reporting_unit_type import ReportingUnitType
 from .reporting_unit import ReportingUnit
 from .unit_of_measurement import UnitOfMeasurement
+<<<<<<< HEAD
+=======
+from .unit_of_measurement_category import UnitOfMeasurementCategory # New import
+>>>>>>> origin/main
 from .temporal_resolution import TemporalResolution
 from .data_quality_flag import DataQualityFlag
 from .indicator_category import IndicatorCategory
@@ -34,6 +38,10 @@ __all__ = [
     "ReportingUnitType",
     "ReportingUnit",
     "UnitOfMeasurement",
+<<<<<<< HEAD
+=======
+    "UnitOfMeasurementCategory", # New model added to __all__
+>>>>>>> origin/main
     "TemporalResolution",
     "DataQualityFlag",
     "IndicatorCategory",
