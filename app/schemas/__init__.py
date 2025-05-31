@@ -10,6 +10,7 @@ from .reporting_unit import (
 )
 # Assuming these files now exist and define the specified schemas:
 from .unit_of_measurement import UnitOfMeasurement, UnitOfMeasurementCreate, UnitOfMeasurementUpdate
+from .unit_of_measurement_category import UnitOfMeasurementCategory, UnitOfMeasurementCategoryCreate, UnitOfMeasurementCategoryBase # New import
 from .temporal_resolution import TemporalResolution, TemporalResolutionCreate, TemporalResolutionUpdate
 from .data_quality_flag import DataQualityFlag, DataQualityFlagCreate, DataQualityFlagUpdate
 from .indicator_category import IndicatorCategory, IndicatorCategoryCreate, IndicatorCategoryUpdate
@@ -56,6 +57,7 @@ Permission.model_rebuild(force=True)
 ReportingUnit.model_rebuild(force=True)
 ReportingUnitType.model_rebuild(force=True) # Usually simple, but good practice
 UnitOfMeasurement.model_rebuild(force=True)
+UnitOfMeasurementCategory.model_rebuild(force=True) # New model_rebuild
 TemporalResolution.model_rebuild(force=True)
 DataQualityFlag.model_rebuild(force=True)
 IndicatorCategory.model_rebuild(force=True)
@@ -87,6 +89,7 @@ __all__ = [
     "ReportingUnit", "ReportingUnitCreate", "ReportingUnitUpdate", "ReportingUnitSimple",
     "ReportingUnitType", "ReportingUnitTypeCreate", "ReportingUnitTypeUpdate",
     "UnitOfMeasurement", "UnitOfMeasurementCreate", "UnitOfMeasurementUpdate",
+    "UnitOfMeasurementCategoryBase", "UnitOfMeasurementCategoryCreate", "UnitOfMeasurementCategory", # New schemas in __all__
     "TemporalResolution", "TemporalResolutionCreate", "TemporalResolutionUpdate",
     "DataQualityFlag", "DataQualityFlagCreate", "DataQualityFlagUpdate",
     "IndicatorCategory", "IndicatorCategoryCreate", "IndicatorCategoryUpdate",
