@@ -131,15 +131,16 @@ class UserService(BaseService[User, UserCreate, UserUpdate]):
 
     # This method is specific to UserService and doesn't fit BaseService
     async def get_multi_with_pagination(
-        self, skip: int = 0, limit: int = 100
+        self, offset: int = 0, limit: int = 100
     ) -> List[User]:
         """
-        Get multiple users with pagination, eagerly loading roles.
+        Get multiple users with pagination, eagerly loading roles and their permissions.
         """
         query = (
             select(self.model)
             .options(selectinload(User.roles).selectinload(Role.permissions)) # Eagerly load roles and their permissions
-            .offset(skip)
+            .offset(offset)
+
             .limit(limit)
             .order_by(User.id) # Consistent ordering for pagination
         )
