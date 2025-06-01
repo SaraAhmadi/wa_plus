@@ -671,6 +671,6 @@ async def main():
 
 
 if __name__ == "__main__":
-    print("Running data population script (populate_user_test.py)...")
+    print("Running data population script (populate_data_test.py)...")
     asyncio.run(main())
     print("Script finished. (final print)")

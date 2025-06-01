@@ -16,6 +16,7 @@ router = APIRouter(
     # dependencies=[Depends(get_current_user)] # Uncomment if all routes need auth
 )
 
+
 @router.post(
     "/",
     response_model=UnitOfMeasurementCategorySchema,
@@ -45,6 +46,7 @@ async def create_unit_of_measurement_category(
         )
     return created_category
 
+
 @router.get("/", response_model=List[UnitOfMeasurementCategorySchema])
 async def read_unit_of_measurement_categories(
     db: AsyncSession = Depends(get_db),
@@ -57,6 +59,7 @@ async def read_unit_of_measurement_categories(
     """
     categories = await uom_category_service.get_categories(db=db, skip=skip, limit=limit)
     return categories
+
 
 @router.get("/{category_id}", response_model=UnitOfMeasurementCategorySchema)
 async def read_unit_of_measurement_category(
