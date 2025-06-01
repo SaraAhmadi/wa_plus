@@ -1,4 +1,3 @@
-```python
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -7,6 +6,7 @@ from sqlalchemy.exc import IntegrityError # To handle potential unique constrain
 from app.database.models.unit_of_measurement_category import UnitOfMeasurementCategory as UnitOfMeasurementCategoryModel
 from app.schemas.unit_of_measurement_category import UnitOfMeasurementCategoryCreate as UnitOfMeasurementCategoryCreateSchema
 # Using aliased imports for clarity between model and schema if names were identical
+
 
 async def create_category(
     db: AsyncSession, category_in: UnitOfMeasurementCategoryCreateSchema
@@ -39,6 +39,7 @@ async def create_category(
         result = await db.execute(existing_category_query) # Re-check
         return result.scalars().first() # Could be None if rollback was for other IntegrityError
 
+
 async def get_category(
     db: AsyncSession, category_id: int
 ) -> Optional[UnitOfMeasurementCategoryModel]:
@@ -49,6 +50,7 @@ async def get_category(
     result = await db.execute(query)
     return result.scalars().first()
 
+
 async def get_categories(
     db: AsyncSession, skip: int = 0, limit: int = 100
 ) -> List[UnitOfMeasurementCategoryModel]:
@@ -58,6 +60,7 @@ async def get_categories(
     query = select(UnitOfMeasurementCategoryModel).offset(skip).limit(limit).order_by(UnitOfMeasurementCategoryModel.id)
     result = await db.execute(query)
     return result.scalars().all()
+
 
 async def get_category_by_name(
     db: AsyncSession, name: str
@@ -70,4 +73,4 @@ async def get_category_by_name(
     result = await db.execute(query)
     return result.scalars().first()
 
-```
+
