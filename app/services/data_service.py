@@ -35,7 +35,7 @@ class DataService:
             unit_type_id: Optional[int] = None,
             parent_unit_id: Optional[int] = None,
             search_term: Optional[str] = None,
-            skip: int = 0,
+            offset: int = 0,
             limit: int = 100
     ) -> List[ReportingUnit]:
         query = select(ReportingUnit).options(selectinload(ReportingUnit.unit_type)).order_by(ReportingUnit.name)
@@ -45,7 +45,7 @@ class DataService:
             query = query.where(ReportingUnit.parent_unit_id == parent_unit_id)
         if search_term:
             query = query.where(ReportingUnit.name.ilike(f"%{search_term}%"))
-        query = query.offset(skip).limit(limit)
+        query = query.offset(offset).limit(limit)
         result = await self.db_session.execute(query)
         return result.scalars().all()
 
@@ -83,7 +83,7 @@ class DataService:
             self,
             category_id: Optional[int] = None,
             data_type_filter: Optional[str] = None,  # e.g., "time-series", "spatial_raster", "static_summary"
-            skip: int = 0,
+            offset: int = 0,
             limit: int = 100
     ) -> List[IndicatorDefinition]:
         query = (
@@ -101,7 +101,7 @@ class DataService:
                 query = query.where(IndicatorDefinition.is_spatial_raster == True)
             # Add more conditions for other data_type_filters if needed
             # e.g., if you add a 'data_nature' field to IndicatorDefinition like 'time-series', 'summary'
-        query = query.offset(skip).limit(limit)
+        query = query.offset(offset).limit(limit)
         result = await self.db_session.execute(query)
         return result.scalars().all()
 
@@ -530,7 +530,7 @@ class DataService:
             infra_type_id: Optional[int] = None,
             reporting_unit_id: Optional[int] = None,
             operational_status_id: Optional[int] = None,
-            skip: int = 0,
+            offset: int = 0,
             limit: int = 100
     ) -> List[Infrastructure]:
         query = (
@@ -550,7 +550,7 @@ class DataService:
         if operational_status_id:
             query = query.where(Infrastructure.operational_status_id == operational_status_id)
 
-        query = query.offset(skip).limit(limit)
+        query = query.offset(offset).limit(limit)
         result = await self.db_session.execute(query)
         return result.scalars().all()
 
