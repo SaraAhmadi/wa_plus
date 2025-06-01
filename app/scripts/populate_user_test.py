@@ -274,32 +274,32 @@ async def create_lookups(session: AsyncSession) -> Dict[str, List[Any]]:
                 {"name": "Hectare", "abbreviation": "ha"}, {"name": "Ton per Hectare", "abbreviation": "ton/ha"},
                 {"name": "Millimeter", "abbreviation": "mm"}]
     results["units_of_measurement"] = [
-        await _get_or_create(session, UnitOfMeasurement, {"name": d["name"]}, abbreviation=d["abbreviation"])[0] for d
+        (await _get_or_create(session, UnitOfMeasurement, {"name": d["name"]}, abbreviation=d["abbreviation"]))[0] for d
         in uom_data]
     tr_data = ["Annual", "Monthly", "Daily", "Snapshot"]
-    results["temporal_resolutions"] = [await _get_or_create(session, TemporalResolution, name=n)[0] for n in tr_data]
+    results["temporal_resolutions"] = [(await _get_or_create(session, TemporalResolution, name=n))[0] for n in tr_data]
     dqf_data = ["RAW", "VALIDATED", "ESTIMATED"]
     results["data_quality_flags"] = [
-        await _get_or_create(session, DataQualityFlag, name=n, defaults={"description": f"{n} data"})[0] for n in
+        (await _get_or_create(session, DataQualityFlag, name=n, defaults={"description": f"{n} data"}))[0] for n in
         dqf_data]
     currency_data = [{"code": "USD", "name": "US Dollar"}, {"code": "EUR", "name": "Euro"}]
-    results["currencies"] = [await _get_or_create(session, Currency, {"name": d["name"]}, code=d["code"])[0] for d in
+    results["currencies"] = [(await _get_or_create(session, Currency, {"name": d["name"]}, code=d["code"]))[0] for d in
                              currency_data]
     crop_data = [{"code": "WHT", "name_en": "Wheat"}, {"code": "RCE", "name_en": "Rice"}]
-    results["crops"] = [await _get_or_create(session, Crop, {"name_en": d["name_en"]}, code=d["code"])[0] for d in
+    results["crops"] = [(await _get_or_create(session, Crop, {"name_en": d["name_en"]}, code=d["code"]))[0] for d in
                         crop_data]
     it_data = ["Dam", "Canal", "Pumping Station"]
     results["infrastructure_types"] = [
-        await _get_or_create(session, InfrastructureType, name=n, defaults={"description": f"{n} type"})[0] for n in
+        (await _get_or_create(session, InfrastructureType, name=n, defaults={"description": f"{n} type"}))[0] for n in
         it_data]
     ost_data = ["Operational", "Maintenance", "Decommissioned"]
     results["operational_status_types"] = [
-        await _get_or_create(session, OperationalStatusType, name=n, defaults={"description": f"Status: {n}"})[0] for n
+        (await _get_or_create(session, OperationalStatusType, name=n, defaults={"description": f"Status: {n}"}))[0] for n
         in ost_data]
     fat_data = [{"name": "Revenue", "is_cost": False}, {"name": "OPEX", "is_cost": True},
                 {"name": "CAPEX", "is_cost": True}]
     results["financial_account_types"] = [
-        await _get_or_create(session, FinancialAccountType, name=d["name"], defaults={"is_cost": d["is_cost"]})[0] for d
+        (await _get_or_create(session, FinancialAccountType, name=d["name"], defaults={"is_cost": d["is_cost"]}))[0] for d
         in fat_data]
     await session.flush()
     print("Lookup data created/verified.")
