@@ -416,6 +416,66 @@ summary_data_folder = {
 }
 collection["item"].append(summary_data_folder)
 
+# Define the "Unit of Measurement Categories" folder and its requests
+uom_categories_folder = {
+    "name": "Unit of Measurement Categories",
+    "item": [
+        {
+            "name": "Create Unit of Measurement Category",
+            "request": {
+                "method": "POST",
+                "header": [{"key": "Content-Type", "value": "application/json"}],
+                "body": {
+                    "mode": "raw",
+                    "raw": json.dumps({"name": "Temperature"}, indent=4),
+                    "options": {"raw": {"language": "json"}}
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/api/v1/unit-of-measurement-categories/",
+                    "host": ["{{baseUrl}}"],
+                    "path": ["api", "v1", "unit-of-measurement-categories", ""]
+                },
+                "description": "Create a new unit of measurement category. Requires authentication."
+            },
+            "response": []
+        },
+        {
+            "name": "List Unit of Measurement Categories",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/v1/unit-of-measurement-categories/?skip=0&limit=100",
+                    "host": ["{{baseUrl}}"],
+                    "path": ["api", "v1", "unit-of-measurement-categories", ""],
+                    "query": [
+                        {"key": "skip", "value": "0", "description": "Number of records to skip"},
+                        {"key": "limit", "value": "100", "description": "Maximum number of records"}
+                    ]
+                },
+                "description": "Retrieve a list of unit of measurement categories."
+            },
+            "response": []
+        },
+        {
+            "name": "Get Unit of Measurement Category by ID",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/v1/unit-of-measurement-categories/{{uom_category_id}}",
+                    "host": ["{{baseUrl}}"],
+                    "path": ["api", "v1", "unit-of-measurement-categories", "{{uom_category_id}}"],
+                    "variable": [{"key": "uom_category_id", "value": "1", "description": "(integer)"}]
+                },
+                "description": "Retrieve a specific unit of measurement category by its ID."
+            },
+            "response": []
+        }
+    ]
+}
+collection["item"].append(uom_categories_folder)
+
 
 with open("postman_collection.json", "w") as f:
     json.dump(collection, f, indent=4)

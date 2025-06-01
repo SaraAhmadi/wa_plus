@@ -7,7 +7,6 @@ from app.database.models.unit_of_measurement_category import UnitOfMeasurementCa
 from app.schemas.unit_of_measurement_category import UnitOfMeasurementCategoryCreate as UnitOfMeasurementCategoryCreateSchema
 # Using aliased imports for clarity between model and schema if names were identical
 
-
 async def create_category(
     db: AsyncSession, category_in: UnitOfMeasurementCategoryCreateSchema
 ) -> Optional[UnitOfMeasurementCategoryModel]:
@@ -72,5 +71,4 @@ async def get_category_by_name(
     query = select(UnitOfMeasurementCategoryModel).where(UnitOfMeasurementCategoryModel.name == name)
     result = await db.execute(query)
     return result.scalars().first()
-
 
