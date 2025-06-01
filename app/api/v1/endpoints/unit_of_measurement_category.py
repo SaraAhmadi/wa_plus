@@ -74,4 +74,3 @@ async def read_unit_of_measurement_category(
             detail=f"Unit of measurement category with ID {category_id} not found.",
         )
     return category
-
