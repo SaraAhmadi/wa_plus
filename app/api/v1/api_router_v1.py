@@ -3,7 +3,7 @@ from fastapi import APIRouter
 
 from app.api.v1.endpoints import auth
 from app.api.v1.endpoints.admin import users as admin_users
-# from app.api.v1.endpoints.admin import roles as admin_roles
+from app.api.v1.endpoints.admin import roles as admin_roles
 from app.api.v1.endpoints import exports
 from app.api.v1.endpoints import land_and_agriculture
 from app.api.v1.endpoints import map_layers
@@ -26,4 +26,4 @@ api_router_v1.include_router(map_layers.router, prefix="/map-layers", tags=["Map
 api_router_v1.include_router(unit_of_measurement_category.router, prefix="/measurement-units", tags=["Unit of Measurement Categories"])
 api_router_v1.include_router(exports.router, prefix="/export", tags=["Data Export"])
 
-# api_router_v1.include_router(admin_roles.router, prefix="/admin/roles", tags=["Admin - Roles"])
+api_router_v1.include_router(admin_roles.router, prefix="/admin/roles", tags=["Admin - Roles"])
