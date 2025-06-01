@@ -300,7 +300,7 @@ async def get_or_create_reporting_unit(session: AsyncSession, name: str, code: s
                                   {"wkt": ewkt_with_srid, "id": instance.id})
         except Exception as e:
             print(f"Error setting geom for RU {code}: {e}")
-    return instance
+    return instance, created
 
 
 async def create_reporting_units(session: AsyncSession, unit_types: List[ReportingUnitType]) -> List[ReportingUnit]:
