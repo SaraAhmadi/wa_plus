@@ -1,6 +1,6 @@
 import asyncio
 import pytest
-from typing import AsyncGenerator, Generator, Any
+from typing import AsyncGenerator, Generator, Any, Dict, List # Added Dict, List
 
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
@@ -54,12 +54,14 @@ async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
 app.dependency_overrides[get_db] = override_get_db
 
 
-@pytest.fixture(scope="session")
-def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
-    """Create an instance of the default event loop for each test session."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
+# The event_loop fixture is automatically provided by pytest-asyncio.
+# Redefining it is deprecated and can cause issues.
+# @pytest.fixture(scope="session")
+# def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
+#     """Create an instance of the default event loop for each test session."""
+#     loop = asyncio.get_event_loop_policy().new_event_loop()
+#     yield loop
+#     loop.close()
 
 
 @pytest.fixture(scope="session", autouse=True)

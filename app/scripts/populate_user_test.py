@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload, attributes
 from sqlalchemy import text as sql_text
+from sqlalchemy.exc import IntegrityError # Moved import to top
 
 import sys
 import os
@@ -45,23 +46,59 @@ ModelType = TypeVar("ModelType", bound=Base)
 # --- Helper Functions (assuming _get_or_create, get_random_element are as in V7) ---
 async def _get_or_create(session: AsyncSession, model_cls: Type[ModelType], defaults: Optional[Dict[str, Any]] = None,
                          load_relationships: Optional[List[str]] = None, **kwargs: Any) -> tuple[ModelType, bool]:
+    # Initial query based on kwargs
     stmt = select(model_cls).filter_by(**kwargs)
     if load_relationships and hasattr(model_cls, '__mapper__'):
         options_to_load = []
         for rel_name in load_relationships:
             if hasattr(model_cls, rel_name): options_to_load.append(selectinload(getattr(model_cls, rel_name)))
         if options_to_load: stmt = stmt.options(*options_to_load)
+
     result = await session.execute(stmt)
     instance = result.scalars().first()
-    created = False
-    if not instance:
+    created = False # Initialize created as False
+
+    if instance:
+        print(f"{model_cls.__name__} with {kwargs} already exists (ID: {instance.id}).")
+    else:
         params = {**kwargs, **(defaults or {})}
         instance = model_cls(**params)
         session.add(instance)
-        print(f"Creating {model_cls.__name__}: {kwargs}")
-        created = True
-    else:
-        print(f"{model_cls.__name__} with {kwargs} already exists (ID: {instance.id}).")
+        print(f"Attempting to create {model_cls.__name__} with params: {params}")
+        try:
+            await session.flush()
+            await session.refresh(instance)
+            print(f"Successfully created and flushed {model_cls.__name__} (ID: {instance.id}).")
+            created = True
+        except IntegrityError as e:
+            await session.rollback()
+            print(f"IntegrityError for {model_cls.__name__} with params {params}. Attempting to fetch conflicting record.")
+
+            fetched_instance = None
+            # Try fetching by unique fields that might have caused the conflict.
+            # This often involves fields from 'defaults' that have unique constraints.
+            # Example: if 'name' is unique and was in 'params' (from defaults).
+            if 'name' in params and hasattr(model_cls, 'name'): # Check if model has 'name' attribute
+                stmt_alt_name = select(model_cls).filter_by(name=params['name'])
+                result_alt_name = await session.execute(stmt_alt_name)
+                fetched_instance = result_alt_name.scalars().first()
+
+            # If not found by a common unique field like 'name',
+            # try again with original kwargs, in case of a race condition
+            # where another process created it just before our flush.
+            if not fetched_instance:
+                stmt_alt_kwargs = select(model_cls).filter_by(**kwargs)
+                result_alt_kwargs = await session.execute(stmt_alt_kwargs)
+                fetched_instance = result_alt_kwargs.scalars().first()
+
+            if fetched_instance:
+                instance = fetched_instance
+                print(f"Found existing {model_cls.__name__} (ID: {instance.id}) after IntegrityError.")
+                # 'created' remains False
+            else:
+                print(f"Could not find conflicting {model_cls.__name__} after IntegrityError. Raising original error.")
+                raise e # Re-raise the original integrity error
+
     return instance, created
 
 
@@ -76,12 +113,17 @@ async def create_permissions(session: AsyncSession) -> List[Permission]:
     print("Creating permissions...")
     permissions_data = [
         {"name": "view_all_dashboards", "description": "Can view all dashboards"},
-        {"name": "manage_users", "description": "Can create, edit, delete users"},
+        # "manage_users" is generic, "users:manage" is more specific. Will use specific one for now.
+        # {"name": "manage_users", "description": "Can create, edit, delete users"},
         {"name": "manage_roles", "description": "Can create, edit, delete roles"},
         {"name": "enter_basin_data", "description": "Can enter data for any basin"},
         {"name": "approve_basin_data", "description": "Can approve data for any basin"},
         {"name": "view_financial_reports", "description": "Can view financial reports"},
         {"name": "manage_infrastructure_data", "description": "Can manage infrastructure records"},
+        # Added from populate_test_data.py
+        {"name": "data:view:all", "description": "Can view all data."},
+        {"name": "settings:edit:basin_A", "description": "Can edit settings for Basin A."},
+        {"name": "users:manage", "description": "Can manage users and roles."} # Specific version for user management
     ]
     permissions = []
     for p_data in permissions_data:
@@ -94,12 +136,40 @@ async def create_permissions(session: AsyncSession) -> List[Permission]:
 
 async def create_roles(session: AsyncSession, all_permissions: List[Permission]) -> List[Role]:
     print("Creating roles...")
+
+    # Helper to find permissions by name for role definitions
+    def get_perms_by_names(names: List[str]) -> List[Permission]:
+        return [p for p in all_permissions if p.name in names]
+
     roles_data_from_script = [
-        {"name": "Administrator", "description": "System Administrator", "permissions_to_link": all_permissions},
-        {"name": "DataManager", "description": "Manages data", "permissions_to_link": [p for p in all_permissions if
-                                                                                       "view" in p.name or "data" in p.name or "enter" in p.name or "approve" in p.name]},
-        {"name": "ReportingAnalyst", "description": "Views data and reports",
-         "permissions_to_link": [p for p in all_permissions if "view" in p.name]},
+        {
+            "name": "Administrator",
+            "description": "System Administrator",
+            # Assign all known specific permissions. The original "all_permissions" was too broad if new permissions are added.
+            "permissions_to_link": get_perms_by_names([
+                "data:view:all", "users:manage", "settings:edit:basin_A",
+                "view_all_dashboards", "manage_roles", "enter_basin_data",
+                "approve_basin_data", "view_financial_reports", "manage_infrastructure_data"
+            ])
+        },
+        {
+            "name": "DataManager",
+            "description": "Manages data",
+            "permissions_to_link": get_perms_by_names([
+                "data:view:all", "view_all_dashboards", "enter_basin_data", "approve_basin_data",
+                "manage_infrastructure_data" # DataManagers might manage infrastructure
+            ])
+        },
+        {
+            "name": "ReportingAnalyst",
+            "description": "Views data and reports",
+            "permissions_to_link": get_perms_by_names(["data:view:all", "view_all_dashboards", "view_financial_reports"])
+        },
+        { # Added from populate_test_data.py
+            "name": "DataViewer",
+            "description": "Can view data.",
+            "permissions_to_link": get_perms_by_names(["data:view:all", "view_all_dashboards"])
+        }
     ]
     created_roles_list = []
     for r_data in roles_data_from_script:
@@ -236,32 +306,65 @@ async def get_or_create_reporting_unit(session: AsyncSession, name: str, code: s
 async def create_reporting_units(session: AsyncSession, unit_types: List[ReportingUnitType]) -> List[ReportingUnit]:
     print("Creating reporting units...")
     units = []
-    if not unit_types: return units
-    country_type = next((ut for ut in unit_types if ut.name == "Country"), unit_types[0])
-    country_unit, _ = await _get_or_create(session, ReportingUnit, code="AQT",
-                                           defaults={"name": "Republic of Aquaterra", "unit_type_id": country_type.id,
-                                                     "area_sqkm": random.uniform(100000, 500000)})
-    await session.flush();
-    units.append(country_unit)
+    if not unit_types:
+        print("Warning: No reporting unit types provided to create_reporting_units.")
+        return units
+
+    # Fetch specific unit types, falling back to the first available if not found
+    type_country = next((ut for ut in unit_types if ut.name == "Country"), unit_types[0])
+    type_basin = next((ut for ut in unit_types if ut.name == "River Basin"), unit_types[0])
+    type_sub_basin = next((ut for ut in unit_types if ut.name == "Sub-Basin"), unit_types[0])
+
+    # Create "Republic of Aquaterra" and its sub-units (existing logic)
+    aqt_country_unit, _ = await _get_or_create(session, ReportingUnit, code="AQT",
+                                               defaults={"name": "Republic of Aquaterra", "unit_type_id": type_country.id,
+                                                         "area_sqkm": random.uniform(100000, 500000)})
+    await session.flush()
+    units.append(aqt_country_unit)
+
     province_type = next((ut for ut in unit_types if ut.name == "Province"), unit_types[0])
     for i in range(NUM_REPORTING_UNITS_PER_TYPE_MAIN):
-        prov_name = f"Province {chr(65 + i)}";
+        prov_name = f"Province {chr(65 + i)}"
         prov_code = f"AQT-P{chr(65 + i)}"
         province, _ = await _get_or_create(session, ReportingUnit, code=prov_code,
                                            defaults={"name": prov_name, "unit_type_id": province_type.id,
-                                                     "parent_unit_id": country_unit.id,
+                                                     "parent_unit_id": aqt_country_unit.id,
                                                      "area_sqkm": random.uniform(50000, 200000)})
-        await session.flush();
+        await session.flush()
         units.append(province)
-        sub_basin_type = next((ut for ut in unit_types if ut.name == "Sub-Basin"), unit_types[0])
+
+        # Using type_sub_basin for these generic sub-units for consistency
         for j in range(NUM_SUB_UNITS_PER_MAIN):
-            sub_name = f"{prov_name} Sub-{j + 1}";
+            sub_name = f"{prov_name} Sub-{j + 1}"
             sub_code = f"{prov_code}-SB{j + 1}"
             sub_unit, _ = await _get_or_create(session, ReportingUnit, code=sub_code,
-                                               defaults={"name": sub_name, "unit_type_id": sub_basin_type.id,
+                                               defaults={"name": sub_name, "unit_type_id": type_sub_basin.id,
                                                          "parent_unit_id": province.id,
                                                          "area_sqkm": random.uniform(1000, 10000)})
             units.append(sub_unit)
+
+    # Create specific units from populate_test_data.py
+    # 1. Country X
+    country_x, _ = await get_or_create_reporting_unit(
+        session, name="Country X", code="CX", unit_type_id=type_country.id, area_sqkm=1200000.0
+    )
+    units.append(country_x)
+
+    # 2. Blue River Basin
+    wkt_brb = "POLYGON((30 -10, 40 -20, 35 -25, 30 -10))" # Example WKT
+    blue_river_basin, _ = await get_or_create_reporting_unit(
+        session, name="Blue River Basin", code="BRB", unit_type_id=type_basin.id,
+        parent_unit_id=country_x.id, area_sqkm=50000.0, geom_wkt=wkt_brb
+    )
+    units.append(blue_river_basin)
+
+    # 3. Upper Blue Sub-basin
+    upper_blue_subbasin, _ = await get_or_create_reporting_unit(
+        session, name="Upper Blue Sub-basin", code="UBSB", unit_type_id=type_sub_basin.id,
+        parent_unit_id=blue_river_basin.id, area_sqkm=15000.0
+    )
+    units.append(upper_blue_subbasin)
+
     await session.flush()
     print(f"Created/found {len(units)} reporting units.")
     return units
@@ -270,36 +373,50 @@ async def create_reporting_units(session: AsyncSession, unit_types: List[Reporti
 async def create_lookups(session: AsyncSession) -> Dict[str, List[Any]]:
     print("Creating lookup tables data...")
     results: Dict[str, List[Any]] = {}
-    uom_data = [{"name": "Cubic Meter", "abbreviation": "m³"}, {"name": "Liter per Second", "abbreviation": "l/s"},
-                {"name": "Hectare", "abbreviation": "ha"}, {"name": "Ton per Hectare", "abbreviation": "ton/ha"},
-                {"name": "Millimeter", "abbreviation": "mm"}]
+    uom_data = [
+        {"name": "Cubic Meter", "abbreviation": "m³"},
+        {"name": "Cubic Meter per Second", "abbreviation": "m3/s"}, # Added
+        {"name": "Liter per Second", "abbreviation": "l/s"},
+        {"name": "Hectare", "abbreviation": "ha"},
+        {"name": "Ton per Hectare", "abbreviation": "t/ha"}, # Standardized abbreviation
+        {"name": "Millimeter", "abbreviation": "mm"},
+        {"name": "Million Cubic Meters", "abbreviation": "MCM"}  # Added
+    ]
     results["units_of_measurement"] = [
-        await _get_or_create(session, UnitOfMeasurement, {"name": d["name"]}, abbreviation=d["abbreviation"])[0] for d
+        (await _get_or_create(session, UnitOfMeasurement, {"name": d["name"]}, abbreviation=d["abbreviation"]))[0] for d
         in uom_data]
-    tr_data = ["Annual", "Monthly", "Daily", "Snapshot"]
-    results["temporal_resolutions"] = [await _get_or_create(session, TemporalResolution, name=n)[0] for n in tr_data]
-    dqf_data = ["RAW", "VALIDATED", "ESTIMATED"]
+    tr_data = ["Annual", "Monthly", "Daily", "Snapshot"] # Already comprehensive
+    results["temporal_resolutions"] = [(await _get_or_create(session, TemporalResolution, name=n))[0] for n in tr_data]
+    dqf_data = ["RAW", "VALIDATED", "ESTIMATED", "Measured"] # Added "Measured"
     results["data_quality_flags"] = [
-        await _get_or_create(session, DataQualityFlag, name=n, defaults={"description": f"{n} data"})[0] for n in
+        (await _get_or_create(session, DataQualityFlag, name=n, defaults={"description": f"{n} data"}))[0] for n in
         dqf_data]
-    currency_data = [{"code": "USD", "name": "US Dollar"}, {"code": "EUR", "name": "Euro"}]
-    results["currencies"] = [await _get_or_create(session, Currency, {"name": d["name"]}, code=d["code"])[0] for d in
+    currency_data = [
+        {"code": "USD", "name": "US Dollar"},
+        {"code": "EUR", "name": "Euro"},
+        {"code": "IRR", "name": "Iranian Rial"} # Added
+    ]
+    results["currencies"] = [(await _get_or_create(session, Currency, {"name": d["name"]}, code=d["code"]))[0] for d in
                              currency_data]
-    crop_data = [{"code": "WHT", "name_en": "Wheat"}, {"code": "RCE", "name_en": "Rice"}]
-    results["crops"] = [await _get_or_create(session, Crop, {"name_en": d["name_en"]}, code=d["code"])[0] for d in
+    crop_data = [
+        {"code": "WHT", "name_en": "Wheat"},
+        {"code": "RCE", "name_en": "Rice"},
+        {"code": "MAZ", "name_en": "Maize"} # Added
+    ]
+    results["crops"] = [(await _get_or_create(session, Crop, {"name_en": d["name_en"]}, code=d["code"]))[0] for d in
                         crop_data]
-    it_data = ["Dam", "Canal", "Pumping Station"]
+    it_data = ["Dam", "Canal", "Pumping Station"] # Already comprehensive
     results["infrastructure_types"] = [
-        await _get_or_create(session, InfrastructureType, name=n, defaults={"description": f"{n} type"})[0] for n in
+        (await _get_or_create(session, InfrastructureType, name=n, defaults={"description": f"{n} type"}))[0] for n in
         it_data]
     ost_data = ["Operational", "Maintenance", "Decommissioned"]
     results["operational_status_types"] = [
-        await _get_or_create(session, OperationalStatusType, name=n, defaults={"description": f"Status: {n}"})[0] for n
+        (await _get_or_create(session, OperationalStatusType, name=n, defaults={"description": f"Status: {n}"}))[0] for n
         in ost_data]
     fat_data = [{"name": "Revenue", "is_cost": False}, {"name": "OPEX", "is_cost": True},
                 {"name": "CAPEX", "is_cost": True}]
     results["financial_account_types"] = [
-        await _get_or_create(session, FinancialAccountType, name=d["name"], defaults={"is_cost": d["is_cost"]})[0] for d
+        (await _get_or_create(session, FinancialAccountType, name=d["name"], defaults={"is_cost": d["is_cost"]}))[0] for d
         in fat_data]
     await session.flush()
     print("Lookup data created/verified.")
@@ -309,102 +426,192 @@ async def create_lookups(session: AsyncSession) -> Dict[str, List[Any]]:
 async def populate_main_data(session: AsyncSession, lookups: Dict[str, List[Any]], users: List[User],
                              reporting_units: List[ReportingUnit]):
     print("Populating main data entities (IndicatorDefs, Infra)...")
-    indicator_categories = []
+
+    # --- Ensure specific Reporting Units are available for linking ---
+    # These were created in create_reporting_units, now fetch them for use here.
+    ru_blue_river_basin, _ = await _get_or_create(session, ReportingUnit, code="BRB")
+    ru_upper_blue_subbasin, _ = await _get_or_create(session, ReportingUnit, code="UBSB")
+
+    # --- Indicator Categories ---
+    indicator_categories = {} # Use a dict for easier lookup
     cat_hydro, _ = await _get_or_create(session, IndicatorCategory, name_en="Hydrology",
                                         defaults={"name_local": "Hidrologi"})
-    indicator_categories.append(cat_hydro)
+    indicator_categories["Hydrology"] = cat_hydro
+    cat_agri, _ = await _get_or_create(session, IndicatorCategory, name_en="Agriculture",
+                                       defaults={"name_local": "Pertanian"})
+    indicator_categories["Agriculture"] = cat_agri
     await session.flush()
 
-    indicator_definitions = []
-    ind_def_base = [{"code": "PRECIP", "name_en": "Precipitation", "data_type": "Numeric", "uom_abbr": "mm",
-                     "is_spatial_raster": True},
-                    {"code": "Q_RIVER", "name_en": "River Discharge", "data_type": "Numeric", "uom_abbr": "m3/s"}]
-    for i_data in ind_def_base:
-        uom = next(u for u in lookups["units_of_measurement"] if u.abbreviation == i_data["uom_abbr"])
+    # --- Indicator Definitions ---
+    indicator_definitions = {} # Use a dict for easier lookup by code
+
+    # Existing generic definitions
+    ind_def_precip_data = {"code": "PRECIP", "name_en": "Precipitation", "data_type": "Numeric", "uom_abbr": "mm", "is_spatial_raster": True, "category_name": "Hydrology"}
+    ind_def_qriver_data = {"code": "Q_RIVER", "name_en": "River Discharge", "data_type": "Numeric", "uom_abbr": "m3/s", "category_name": "Hydrology"}
+
+    # (P_TOTAL from description seems to be same as PRECIP)
+
+    for i_data in [ind_def_precip_data, ind_def_qriver_data]:
+        uom = next((u for u in lookups["units_of_measurement"] if u.abbreviation == i_data["uom_abbr"]), None)
+        category = indicator_categories.get(i_data["category_name"])
+        if not uom: print(f"Warning: UoM {i_data['uom_abbr']} not found for indicator {i_data['code']}. Skipping."); continue
+        if not category: print(f"Warning: Category {i_data['category_name']} not found for indicator {i_data['code']}. Skipping."); continue
+
         idef, _ = await _get_or_create(session, IndicatorDefinition, code=i_data["code"],
                                        defaults={"name_en": i_data["name_en"], "data_type": i_data["data_type"],
-                                                 "unit_of_measurement_id": uom.id, "category_id": cat_hydro.id,
+                                                 "unit_of_measurement_id": uom.id, "category_id": category.id,
                                                  "is_spatial_raster": i_data.get("is_spatial_raster", False)})
-        indicator_definitions.append(idef)
+        indicator_definitions[i_data["code"]] = idef
     await session.flush()
 
-    infrastructures = []
-    dam_type = next(it for it in lookups["infrastructure_types"] if it.name == "Dam")
-    op_status = next(os_ for os_ in lookups["operational_status_types"] if os_.name == "Operational")
-    for i in range(NUM_INFRASTRUCTURES_TO_CREATE):
-        ru = get_random_element(reporting_units)
-        infra, _ = await _get_or_create(session, Infrastructure, name=f"{ru.code if ru else 'SYS'}-Dam-{i + 1}",
-                                        defaults={"infrastructure_type_id": dam_type.id,
-                                                  "reporting_unit_id": ru.id if ru else None,
-                                                  "operational_status_id": op_status.id})
-        infrastructures.append(infra)
+    # --- Infrastructures ---
+    infrastructures = {} # Use a dict for easier lookup
+
+    # Create generic infrastructures
+    dam_type_generic = next((it for it in lookups["infrastructure_types"] if it.name == "Dam"), None)
+    op_status_generic = next((os_ for os_ in lookups["operational_status_types"] if os_.name == "Operational"), None)
+
+    if dam_type_generic and op_status_generic:
+        for i in range(NUM_INFRASTRUCTURES_TO_CREATE):
+            # Link generic dams to random RUs from the broader list for variety
+            random_ru_for_generic_dam = get_random_element(reporting_units)
+            infra, _ = await _get_or_create(session, Infrastructure, name=f"{random_ru_for_generic_dam.code if random_ru_for_generic_dam else 'SYS'}-Dam-{i + 1}",
+                                            defaults={"infrastructure_type_id": dam_type_generic.id,
+                                                      "reporting_unit_id": random_ru_for_generic_dam.id if random_ru_for_generic_dam else None,
+                                                      "operational_status_id": op_status_generic.id})
+            # infrastructures.append(infra) # Not storing generic ones in the dict by name for now
+
+    # Create specific "Blue Grand Dam"
+    dam_type_specific = next((it for it in lookups["infrastructure_types"] if it.name == "Dam"), None)
+    op_status_specific = next((os_ for os_ in lookups["operational_status_types"] if os_.name == "Operational"), None)
+    uom_mcm = next((uom for uom in lookups["units_of_measurement"] if uom.abbreviation == "MCM"), None)
+
+    if dam_type_specific and op_status_specific and uom_mcm and ru_blue_river_basin:
+        dam_blue_grand, _ = await _get_or_create(
+            session, Infrastructure,
+            name="Blue Grand Dam",
+            defaults={
+                "infrastructure_type_id": dam_type_specific.id,
+                "reporting_unit_id": ru_blue_river_basin.id,
+                "operational_status_id": op_status_specific.id,
+                "capacity_value": Decimal("120.5"),
+                "capacity_unit_id": uom_mcm.id,
+                "construction_year": 2005
+            }
+        )
+        infrastructures["Blue Grand Dam"] = dam_blue_grand
+    else:
+        print("Warning: Could not create 'Blue Grand Dam' due to missing dependencies (type, status, UoM, or RU).")
+
     await session.flush()
     print("Main data entities populated.")
-    return {"indicator_definitions": indicator_definitions, "infrastructures": infrastructures}
+
+    # Prepare entities to be passed to transactional data population
+    entities_for_transactional = {
+        "indicator_definitions_dict": indicator_definitions, # Pass the dict
+        "infrastructures_dict": infrastructures, # Pass the dict
+        "reporting_units_all": reporting_units, # Pass the full list for random selection
+        "ru_upper_blue_subbasin": ru_upper_blue_subbasin,
+        "dam_blue_grand": infrastructures.get("Blue Grand Dam"),
+        "crop_wheat": next((c for c in lookups.get("crops", []) if c.code == "WHT"), None),
+        # Pass all lookups as well
+        "lookups": lookups
+    }
+    return entities_for_transactional
 
 
-async def populate_transactional_data(session: AsyncSession, main_entities: Dict[str, List[Any]],
-                                      lookups: Dict[str, List[Any]]):
+async def populate_transactional_data(session: AsyncSession, main_entities: Dict[str, Any],
+                                      lookups: Dict[str, List[Any]]): # lookups is already in main_entities
     print("Populating transactional data...")
-    # Simplified versions - assuming models and create_..._entry functions exist from V5
-    # IndicatorTimeseries
-    if main_entities.get("indicator_definitions") and main_entities.get("reporting_units"):
-        for _ in range(5):  # Create 5 timeseries entries
-            ind_def = get_random_element(main_entities["indicator_definitions"])
-            ru = get_random_element(main_entities["reporting_units"])
-            tr = get_random_element(lookups["temporal_resolutions"])
-            dqf = get_random_element(lookups["data_quality_flags"])
-            if ind_def and ru and tr and dqf:
-                ts_entry_data = {
-                    "indicator_definition_id": ind_def.id, "reporting_unit_id": ru.id,
-                    "timestamp": datetime.now(timezone.utc) - timedelta(days=random.randint(1, 30)),
-                    "value_numeric": random.uniform(1, 100),
-                    "temporal_resolution_id": tr.id, "quality_flag_id": dqf.id
-                }
-                session.add(IndicatorTimeseries(**ts_entry_data))
 
-    # CroppingPattern
-    if main_entities.get("reporting_units") and lookups.get("crops"):
-        for _ in range(3):
-            ru = get_random_element(main_entities["reporting_units"])
-            crop = get_random_element(lookups["crops"])
-            if ru and crop:
-                cp_entry_data = {
-                    "reporting_unit_id": ru.id, "crop_id": crop.id,
-                    "time_period_year": 2023, "data_type": "Actual",
-                    "area_cultivated_ha": random.uniform(10, 100)
-                }
-                session.add(CroppingPattern(**cp_entry_data))
+    # Retrieve necessary entities from main_entities
+    indicator_definitions_dict = main_entities.get("indicator_definitions_dict", {})
+    ru_upper_blue_subbasin = main_entities.get("ru_upper_blue_subbasin")
+    dam_blue_grand = main_entities.get("dam_blue_grand")
+    crop_wheat = main_entities.get("crop_wheat")
+    # lookups are now nested in main_entities
+    internal_lookups = main_entities.get("lookups", {})
 
-    # FinancialAccount
-    if lookups.get("financial_account_types") and lookups.get("currencies") and main_entities.get("reporting_units"):
-        for _ in range(3):
-            fat = get_random_element(lookups["financial_account_types"])
-            curr = get_random_element(lookups["currencies"])
-            ru = get_random_element(main_entities["reporting_units"])
-            if fat and curr and ru:
-                fa_entry_data = {
-                    "financial_account_type_id": fat.id, "currency_id": curr.id,
-                    "reporting_unit_id": ru.id,
-                    "transaction_date": date(2023, random.randint(1, 12), random.randint(1, 28)),
-                    "amount": Decimal(str(random.uniform(1000, 100000))).quantize(Decimal("0.01"))
-                }
-                session.add(FinancialAccount(**fa_entry_data))
 
-    # RasterMetadata
-    if main_entities.get("indicator_definitions"):
-        raster_ind = next((id_ for id_ in main_entities["indicator_definitions"] if id_.is_spatial_raster), None)
-        if raster_ind:
-            rm_entry_data = {
-                "layer_name_geoserver": f"{raster_ind.code}_test_raster", "geoserver_workspace": "test_ws",
-                "indicator_definition_id": raster_ind.id,
-                "timestamp_valid_start": datetime.now(timezone.utc) - timedelta(days=30),
-                "storage_path_or_postgis_table": "/test/path.tif"
-            }
-            session.add(RasterMetadata(**rm_entry_data))
+    # 1. Specific IndicatorTimeseries
+    def_q_river = indicator_definitions_dict.get("Q_RIVER")
+    def_precip = indicator_definitions_dict.get("PRECIP")
+    tr_daily = next((tr for tr in internal_lookups.get("temporal_resolutions", []) if tr.name == "Daily"), None)
+    dqf_measured = next((dqf for dqf in internal_lookups.get("data_quality_flags", []) if dqf.name == "Measured"), None)
+
+    if def_q_river and ru_upper_blue_subbasin and tr_daily and dqf_measured:
+        for i in range(3): # Create a few data points
+            session.add(IndicatorTimeseries(
+                indicator_definition_id=def_q_river.id,
+                reporting_unit_id=ru_upper_blue_subbasin.id,
+                timestamp=datetime(2023, 1, 15 + i, tzinfo=timezone.utc),
+                value_numeric=random.uniform(50, 150),
+                temporal_resolution_id=tr_daily.id,
+                quality_flag_id=dqf_measured.id
+            ))
+    if def_precip and ru_upper_blue_subbasin and tr_daily and dqf_measured:
+        for i in range(3):
+             session.add(IndicatorTimeseries(
+                indicator_definition_id=def_precip.id,
+                reporting_unit_id=ru_upper_blue_subbasin.id,
+                timestamp=datetime(2023, 1, 15 + i, tzinfo=timezone.utc),
+                value_numeric=random.uniform(1, 20),
+                temporal_resolution_id=tr_daily.id,
+                quality_flag_id=dqf_measured.id
+            ))
+
+    # 2. Specific RasterMetadata
+    if def_precip:
+        session.add(RasterMetadata(
+            layer_name_geoserver="brb_rainfall_2023_01", # Specific name
+            geoserver_workspace="basins", # Example workspace
+            indicator_definition_id=def_precip.id,
+            timestamp_valid_start=datetime(2023, 1, 1, tzinfo=timezone.utc),
+            timestamp_valid_end=datetime(2023, 1, 31, 23, 59, 59, tzinfo=timezone.utc),
+            storage_path_or_postgis_table="s3://bucket/brb_rainfall_2023_01.tif" # Example path
+        ))
+
+    # 3. Specific CroppingPattern
+    if crop_wheat and ru_upper_blue_subbasin:
+        session.add(CroppingPattern(
+            reporting_unit_id=ru_upper_blue_subbasin.id,
+            crop_id=crop_wheat.id,
+            time_period_year=2023,
+            data_type="Planned", # Example data type
+            area_cultivated_ha=Decimal("1200.75"),
+            yield_value=Decimal("4.5"),
+            consumption_value_m3=Decimal("6000.0")
+        ))
+
+    # 4. Specific FinancialAccount for Blue Grand Dam
+    fac_type_opex = next((ft for ft in internal_lookups.get("financial_account_types", []) if ft.name == "OPEX"), None)
+    curr_usd = next((c for c in internal_lookups.get("currencies", []) if c.code == "USD"), None)
+    if dam_blue_grand and fac_type_opex and curr_usd:
+        session.add(FinancialAccount(
+            financial_account_type_id=fac_type_opex.id,
+            currency_id=curr_usd.id,
+            infrastructure_id=dam_blue_grand.id, # Link to specific dam
+            transaction_date=date(2023, 3, 15),
+            amount=Decimal("-25000.00"), # Cost is negative
+            description="Annual operational cost for Blue Grand Dam"
+        ))
+
+    # --- Existing Generic Transactional Data ---
+    # Keep some generic data creation if desired, adapting to use main_entities.get("reporting_units_all") etc.
+    # For now, focusing on adding specific data. The original generic loops are commented out or removed below for clarity.
+
+    # Original generic IndicatorTimeseries loop (example of adaptation)
+    # if main_entities.get("indicator_definitions_dict") and main_entities.get("reporting_units_all"):
+    #     all_indicator_defs = list(main_entities["indicator_definitions_dict"].values())
+    #     for _ in range(5):
+    #         ind_def = get_random_element(all_indicator_defs)
+    #         ru = get_random_element(main_entities["reporting_units_all"])
+    #         # ... rest of the logic ...
+    #         if ind_def and ru and tr and dqf:
+    #             # ... session.add ...
 
     await session.flush()
-    print("Transactional data added (not yet committed).")
+    print("Transactional data (specific and potentially generic) added.")
 
 
 # --- Main Orchestrator ---
@@ -421,11 +628,18 @@ async def populate_database():
             lookups = await create_lookups(session)
 
             print("\n--- STAGE 2: Entities with Dependencies on Stage 1 ---")
-            # main_entities will contain reporting_units, indicator_definitions, infrastructures
-            main_entities = await populate_main_entities(session, lookups, users, ru_types)
+            # reporting_units_all now contains both generic and specific RUs
+            reporting_units_all = await create_reporting_units(session, ru_types)
+            lookups = await create_lookups(session)
 
-            print("\n--- STAGE 3: Transactional Data ---")
-            await populate_transactional_data(session, main_entities, lookups)
+            print("\n--- STAGE 2: Entities with Dependencies on Stage 1 (includes specific ones) ---")
+            # main_entities will now include specific items like dam_blue_grand, ru_upper_blue_subbasin etc.
+            # It also receives all reporting_units created to choose from for generic items.
+            main_data_entities = await populate_main_data(session, lookups, users, reporting_units_all)
+
+            print("\n--- STAGE 3: Transactional Data (includes specific entries) ---")
+            # Pass main_data_entities which now contains the specific items and lookups
+            await populate_transactional_data(session, main_data_entities, lookups) # lookups is also in main_data_entities
 
             await session.commit()
             print("Database population completed successfully!")

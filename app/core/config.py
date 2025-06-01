@@ -14,8 +14,8 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     DEBUG: bool = False
 
-    # Expect List[AnyHttpUrl], default empty list
-    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
+    # Expect List[str] after validator, default empty list. Avoid AnyHttpUrl during initial load.
+    BACKEND_CORS_ORIGINS: List[str] = []
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
@@ -111,7 +111,7 @@ class Settings(BaseSettings):
     MAX_FILE_SIZE_MB: int = 50
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        # env_file=".env", # Disabled .env file loading
         env_file_encoding='utf-8',
         case_sensitive=True,
         extra='ignore'
