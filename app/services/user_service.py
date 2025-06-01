@@ -140,6 +140,7 @@ class UserService(BaseService[User, UserCreate, UserUpdate]):
             select(self.model)
             .options(selectinload(User.roles).selectinload(Role.permissions)) # Eagerly load roles and their permissions
             .offset(offset)
+
             .limit(limit)
             .order_by(User.id) # Consistent ordering for pagination
         )
