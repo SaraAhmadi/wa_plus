@@ -141,8 +141,17 @@ class UserService(BaseService[User, UserCreate, UserUpdate]):
         user.is_active = False
         self.db_session.add(user)
         await self.db_session.commit()
-        await self.db_session.refresh(user)
-        return user
+
+        # Re-fetch the user with all required relationships loaded for the response model
+        user_id_after_commit = user.id
+        deactivated_user_with_relations = await self.get_user_by_id_with_relations(user_id=user_id_after_commit)
+
+        if deactivated_user_with_relations is None:
+            # This case should ideally not be reached.
+            print(f"ERROR: User with ID {user_id_after_commit} not found after deactivation and commit. This is unexpected.") # For subtask logging
+            raise Exception(f"Failed to re-fetch user {user_id_after_commit} after deactivation, which is required for ensuring all response data is loaded.")
+
+        return deactivated_user_with_relations
 
     async def is_superuser(self, user: User) -> bool:
         return user.is_superuser
