@@ -3,7 +3,7 @@ import random
 from datetime import datetime, timezone, date, timedelta
 from decimal import Decimal
 from typing import List, Dict, Any, Optional, Type, TypeVar
-
+from geoalchemy2 import WKTElement
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload, attributes
@@ -56,48 +56,49 @@ async def _get_or_create(session: AsyncSession, model_cls: Type[ModelType], defa
 
     result = await session.execute(stmt)
     instance = result.scalars().first()
-    created = False # Initialize created as False
+    created = False
 
     if instance:
         print(f"{model_cls.__name__} with {kwargs} already exists (ID: {instance.id}).")
-    else:
-        params = {**kwargs, **(defaults or {})}
-        instance = model_cls(**params)
-        session.add(instance)
-        print(f"Attempting to create {model_cls.__name__} with params: {params}")
-        try:
+        return instance, False # Return early if found
+
+    # If not found, attempt to create within a savepoint
+    params = {**kwargs, **(defaults or {})}
+    try:
+        async with session.begin_nested() as savepoint:  # Start savepoint
+            print(f"Attempting to create {model_cls.__name__} with params: {params} within a savepoint.")
+            instance = model_cls(**params)
+            session.add(instance)
             await session.flush()
             await session.refresh(instance)
-            print(f"Successfully created and flushed {model_cls.__name__} (ID: {instance.id}).")
             created = True
-        except IntegrityError as e:
-            # await session.rollback() # Line removed
-            print(f"IntegrityError for {model_cls.__name__} with params {params}. Attempting to fetch conflicting record.")
+            print(f"Successfully created and flushed {model_cls.__name__} (ID: {instance.id}) within savepoint.")
+            # Savepoint is committed automatically if this block completes without error
 
-            fetched_instance = None
-            # Try fetching by unique fields that might have caused the conflict.
-            # This often involves fields from 'defaults' that have unique constraints.
-            # Example: if 'name' is unique and was in 'params' (from defaults).
-            if 'name' in params and hasattr(model_cls, 'name'): # Check if model has 'name' attribute
-                stmt_alt_name = select(model_cls).filter_by(name=params['name'])
-                result_alt_name = await session.execute(stmt_alt_name)
-                fetched_instance = result_alt_name.scalars().first()
+    except IntegrityError as e:
+        # Savepoint is automatically rolled back by 'async with' on exception
+        print(f"IntegrityError for {model_cls.__name__} with params {params} during savepoint. Savepoint rolled back. Attempting to fetch conflicting record.")
 
-            # If not found by a common unique field like 'name',
-            # try again with original kwargs, in case of a race condition
-            # where another process created it just before our flush.
-            if not fetched_instance:
-                stmt_alt_kwargs = select(model_cls).filter_by(**kwargs)
-                result_alt_kwargs = await session.execute(stmt_alt_kwargs)
-                fetched_instance = result_alt_kwargs.scalars().first()
+        fetched_instance = None
+        # Try fetching by unique fields that might have caused the conflict.
+        if 'name' in params and hasattr(model_cls, 'name'):
+            stmt_alt_name = select(model_cls).filter_by(name=params['name'])
+            result_alt_name = await session.execute(stmt_alt_name)
+            fetched_instance = result_alt_name.scalars().first()
 
-            if fetched_instance:
-                instance = fetched_instance
-                print(f"Found existing {model_cls.__name__} (ID: {instance.id}) after IntegrityError.")
-                # 'created' remains False
-            else:
-                print(f"Could not find conflicting {model_cls.__name__} after IntegrityError. Raising original error.")
-                raise e # Re-raise the original integrity error
+        if not fetched_instance:
+            # Try again with original kwargs, in case of a race condition
+            stmt_alt_kwargs = select(model_cls).filter_by(**kwargs)
+            result_alt_kwargs = await session.execute(stmt_alt_kwargs)
+            fetched_instance = result_alt_kwargs.scalars().first()
+
+        if fetched_instance:
+            instance = fetched_instance
+            created = False # Not created by this call
+            print(f"Found existing {model_cls.__name__} (ID: {instance.id}) after IntegrityError and savepoint rollback.")
+        else:
+            print(f"Could not find conflicting {model_cls.__name__} after IntegrityError and savepoint rollback. Re-raising original error.")
+            raise e  # Re-raise the original integrity error
 
     return instance, created
 
@@ -285,21 +286,41 @@ async def create_reporting_unit_types(session: AsyncSession) -> List[ReportingUn
 # You'll need to copy them from the V7 version I provided previously if they are not in your current file.
 
 # --- Placeholder for other create functions from V7 (copy them here) ---
-async def get_or_create_reporting_unit(session: AsyncSession, name: str, code: str, unit_type_id: int,
-                                       parent_unit_id: Optional[int] = None, description: Optional[str] = None,
-                                       area_sqkm: Optional[float] = None,
-                                       geom_wkt: Optional[str] = None) -> ReportingUnit:
-    defaults = {"name": name, "unit_type_id": unit_type_id, "parent_unit_id": parent_unit_id,
-                "description": description, "area_sqkm": area_sqkm}
-    instance, created = await _get_or_create(session, ReportingUnit, code=code, defaults=defaults)
+async def get_or_create_reporting_unit(
+        session: AsyncSession,
+        name: str,
+        code: str,
+        unit_type_id: int,
+        parent_unit_id: Optional[int] = None,
+        description: Optional[str] = None,
+        area_sqkm: Optional[float] = None,
+        geom_wkt: Optional[str] = None
+) -> tuple[ReportingUnit, bool]:
+    defaults = {
+        "name": name,
+        "unit_type_id": unit_type_id,
+        "parent_unit_id": parent_unit_id,
+        "description": description,
+        "area_sqkm": area_sqkm
+    }
+    instance, created = await _get_or_create(
+        session, ReportingUnit, code=code, defaults=defaults
+    )
+
     if geom_wkt and (created or not instance.geom):
         try:
-            ewkt_with_srid = geom_wkt
-            if not geom_wkt.upper().startswith("SRID="): ewkt_with_srid = f"SRID=4326;{geom_wkt}"
-            await session.execute(sql_text("UPDATE reporting_units SET geom = ST_GeomFromEWKT(:wkt) WHERE id = :id"),
-                                  {"wkt": ewkt_with_srid, "id": instance.id})
+            # Use WKTElement instead of raw SQL
+            instance.geom = WKTElement(geom_wkt, srid=4326)
+            session.add(instance)
+            await session.flush([instance])  # Flush only this instance
         except Exception as e:
             print(f"Error setting geom for RU {code}: {e}")
+            # Explicit rollback for this operation
+            if session.in_transaction():
+                await session.rollback()
+            # Re-raise to handle at higher level
+            raise
+
     return instance, created
 
 
@@ -351,7 +372,7 @@ async def create_reporting_units(session: AsyncSession, unit_types: List[Reporti
     units.append(country_x)
 
     # 2. Blue River Basin
-    wkt_brb = "POLYGON((30 -10, 40 -20, 35 -25, 30 -10))" # Example WKT
+    wkt_brb = "MULTIPOLYGON(((30 -10, 40 -20, 35 -25, 30 -10)))"
     blue_river_basin, _ = await get_or_create_reporting_unit(
         session, name="Blue River Basin", code="BRB", unit_type_id=type_basin.id,
         parent_unit_id=country_x.id, area_sqkm=50000.0, geom_wkt=wkt_brb
