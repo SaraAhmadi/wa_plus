@@ -56,48 +56,49 @@ async def _get_or_create(session: AsyncSession, model_cls: Type[ModelType], defa
 
     result = await session.execute(stmt)
     instance = result.scalars().first()
-    created = False # Initialize created as False
+    created = False
 
     if instance:
         print(f"{model_cls.__name__} with {kwargs} already exists (ID: {instance.id}).")
-    else:
-        params = {**kwargs, **(defaults or {})}
-        instance = model_cls(**params)
-        session.add(instance)
-        print(f"Attempting to create {model_cls.__name__} with params: {params}")
-        try:
+        return instance, False # Return early if found
+
+    # If not found, attempt to create within a savepoint
+    params = {**kwargs, **(defaults or {})}
+    try:
+        async with session.begin_nested() as savepoint:  # Start savepoint
+            print(f"Attempting to create {model_cls.__name__} with params: {params} within a savepoint.")
+            instance = model_cls(**params)
+            session.add(instance)
             await session.flush()
             await session.refresh(instance)
-            print(f"Successfully created and flushed {model_cls.__name__} (ID: {instance.id}).")
             created = True
-        except IntegrityError as e:
-            await session.rollback()
-            print(f"IntegrityError for {model_cls.__name__} with params {params}. Attempting to fetch conflicting record.")
+            print(f"Successfully created and flushed {model_cls.__name__} (ID: {instance.id}) within savepoint.")
+            # Savepoint is committed automatically if this block completes without error
 
-            fetched_instance = None
-            # Try fetching by unique fields that might have caused the conflict.
-            # This often involves fields from 'defaults' that have unique constraints.
-            # Example: if 'name' is unique and was in 'params' (from defaults).
-            if 'name' in params and hasattr(model_cls, 'name'): # Check if model has 'name' attribute
-                stmt_alt_name = select(model_cls).filter_by(name=params['name'])
-                result_alt_name = await session.execute(stmt_alt_name)
-                fetched_instance = result_alt_name.scalars().first()
+    except IntegrityError as e:
+        # Savepoint is automatically rolled back by 'async with' on exception
+        print(f"IntegrityError for {model_cls.__name__} with params {params} during savepoint. Savepoint rolled back. Attempting to fetch conflicting record.")
 
-            # If not found by a common unique field like 'name',
-            # try again with original kwargs, in case of a race condition
-            # where another process created it just before our flush.
-            if not fetched_instance:
-                stmt_alt_kwargs = select(model_cls).filter_by(**kwargs)
-                result_alt_kwargs = await session.execute(stmt_alt_kwargs)
-                fetched_instance = result_alt_kwargs.scalars().first()
+        fetched_instance = None
+        # Try fetching by unique fields that might have caused the conflict.
+        if 'name' in params and hasattr(model_cls, 'name'):
+            stmt_alt_name = select(model_cls).filter_by(name=params['name'])
+            result_alt_name = await session.execute(stmt_alt_name)
+            fetched_instance = result_alt_name.scalars().first()
 
-            if fetched_instance:
-                instance = fetched_instance
-                print(f"Found existing {model_cls.__name__} (ID: {instance.id}) after IntegrityError.")
-                # 'created' remains False
-            else:
-                print(f"Could not find conflicting {model_cls.__name__} after IntegrityError. Raising original error.")
-                raise e # Re-raise the original integrity error
+        if not fetched_instance:
+            # Try again with original kwargs, in case of a race condition
+            stmt_alt_kwargs = select(model_cls).filter_by(**kwargs)
+            result_alt_kwargs = await session.execute(stmt_alt_kwargs)
+            fetched_instance = result_alt_kwargs.scalars().first()
+
+        if fetched_instance:
+            instance = fetched_instance
+            created = False # Not created by this call
+            print(f"Found existing {model_cls.__name__} (ID: {instance.id}) after IntegrityError and savepoint rollback.")
+        else:
+            print(f"Could not find conflicting {model_cls.__name__} after IntegrityError and savepoint rollback. Re-raising original error.")
+            raise e  # Re-raise the original integrity error
 
     return instance, created
 
