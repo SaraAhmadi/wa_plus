@@ -1,4 +1,3 @@
-```python
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -69,5 +68,3 @@ async def get_category_by_name(
     query = select(UnitOfMeasurementCategoryModel).where(UnitOfMeasurementCategoryModel.name == name)
     result = await db.execute(query)
     return result.scalars().first()
-
-```

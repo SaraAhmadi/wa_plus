@@ -1,4 +1,3 @@
-```python
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -75,5 +74,3 @@ async def read_unit_of_measurement_category(
             detail=f"Unit of measurement category with ID {category_id} not found.",
         )
     return category
-
-```

@@ -1,4 +1,3 @@
-```python
 import pytest
 from typing import Dict, List
 from httpx import AsyncClient
@@ -169,5 +168,3 @@ async def test_read_uom_category_by_id_not_found(test_client: AsyncClient):
     response = await test_client.get(f"{BASE_URL}/{non_existent_id}")
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert "not found" in response.json()["detail"]
-
-```
