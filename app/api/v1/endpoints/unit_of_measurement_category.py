@@ -11,7 +11,7 @@ from app.services import unit_of_measurement_category_service as uom_category_se
 from app.schemas.user import User as UserSchema # For current_user type hint
 
 router = APIRouter(
-    prefix="/unit-of-measurement-categories",
+    prefix="/categories",
     tags=["Unit of Measurement Categories"],
     # dependencies=[Depends(get_current_user)] # Uncomment if all routes need auth
 )
@@ -47,7 +47,7 @@ async def create_unit_of_measurement_category(
     return created_category
 
 
-@router.get("/", response_model=List[UnitOfMeasurementCategorySchema])
+@router.get("/list/", response_model=List[UnitOfMeasurementCategorySchema])
 async def read_unit_of_measurement_categories(
     db: AsyncSession = Depends(get_db),
     offset: int = Query(0, description="Number of records to offset for pagination", ge=0),
