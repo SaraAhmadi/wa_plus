@@ -51,12 +51,12 @@ async def get_category(
 
 
 async def get_categories(
-    db: AsyncSession, skip: int = 0, limit: int = 100
+    db: AsyncSession, offset: int = 0, limit: int = 100
 ) -> List[UnitOfMeasurementCategoryModel]:
     """
     Get a list of unit of measurement categories with pagination.
     """
-    query = select(UnitOfMeasurementCategoryModel).offset(skip).limit(limit).order_by(UnitOfMeasurementCategoryModel.id)
+    query = select(UnitOfMeasurementCategoryModel).offset(offset).limit(limit).order_by(UnitOfMeasurementCategoryModel.id)
     result = await db.execute(query)
     return result.scalars().all()
 

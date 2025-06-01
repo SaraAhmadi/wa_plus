@@ -32,12 +32,12 @@ class BaseService(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         return result.scalars().first()
 
     async def get_multi(
-        self, db: AsyncSession, *, skip: int = 0, limit: int = 100
+        self, db: AsyncSession, *, offset: int = 0, limit: int = 100
     ) -> List[ModelType]:
         """
         Get multiple records with pagination.
         """
-        result = await db.execute(select(self.model).offset(skip).limit(limit))
+        result = await db.execute(select(self.model).offset(offset).limit(limit))
         return result.scalars().all()
 
     async def get_all(self, db: AsyncSession) -> List[ModelType]:
