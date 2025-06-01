@@ -71,7 +71,7 @@ async def _get_or_create(session: AsyncSession, model_cls: Type[ModelType], defa
             print(f"Successfully created and flushed {model_cls.__name__} (ID: {instance.id}).")
             created = True
         except IntegrityError as e:
-            await session.rollback()
+            # await session.rollback() # Line removed
             print(f"IntegrityError for {model_cls.__name__} with params {params}. Attempting to fetch conflicting record.")
 
             fetched_instance = None
