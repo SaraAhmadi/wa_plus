@@ -530,7 +530,6 @@ async def populate_main_data(session: AsyncSession, lookups: Dict[str, List[Any]
                 "operational_status_id": op_status_specific.id,
                 "capacity": Decimal("120.5"),
                 "capacity_unit_id": uom_mcm.id,
-                "construction_year": 2005
             }
         )
         infrastructures["Blue Grand Dam"] = dam_blue_grand
@@ -597,12 +596,12 @@ async def populate_transactional_data(session: AsyncSession, main_entities: Dict
     # 2. Specific RasterMetadata
     if def_precip:
         session.add(RasterMetadata(
-            layer_name_geoserver="brb_rainfall_2023_01", # Specific name
-            geoserver_workspace="basins", # Example workspace
+            layer_name_geoserver="brb_rainfall_2023_01",
+            geoserver_workspace="basins",
             indicator_definition_id=def_precip.id,
-            timestamp_valid_start=datetime(2023, 1, 1, tzinfo=timezone.utc),
-            timestamp_valid_end=datetime(2023, 1, 31, 23, 59, 59, tzinfo=timezone.utc),
-            storage_path_or_postgis_table="s3://bucket/brb_rainfall_2023_01.tif" # Example path
+            timestamp_valid_start=datetime(2023, 1, 1),
+            timestamp_valid_end=datetime(2023, 1, 31, 23, 59, 59),
+            storage_path_or_postgis_table="s3://bucket/brb_rainfall_2023_01.tif"
         ))
 
     # 3. Specific CroppingPattern
@@ -613,8 +612,8 @@ async def populate_transactional_data(session: AsyncSession, main_entities: Dict
             time_period_year=2023,
             data_type="Planned", # Example data type
             area_cultivated_ha=Decimal("1200.75"),
-            yield_value=Decimal("4.5"),
-            consumption_value_m3=Decimal("6000.0")
+            yield_actual_ton_ha=Decimal("4.5"),
+            water_consumed_actual_mcm=Decimal("6000.0")
         ))
 
     # 4. Specific FinancialAccount for Blue Grand Dam
