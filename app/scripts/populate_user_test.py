@@ -385,6 +385,7 @@ async def create_lookups(session: AsyncSession) -> Dict[str, List[Any]]:
     results["units_of_measurement"] = [
         (await _get_or_create(session, UnitOfMeasurement, {"name": d["name"]}, abbreviation=d["abbreviation"]))[0] for d
         in uom_data]
+
     tr_data = ["Annual", "Monthly", "Daily", "Snapshot"] # Already comprehensive
     results["temporal_resolutions"] = [(await _get_or_create(session, TemporalResolution, name=n))[0] for n in tr_data]
     dqf_data = ["RAW", "VALIDATED", "ESTIMATED", "Measured"] # Added "Measured"
@@ -403,6 +404,18 @@ async def create_lookups(session: AsyncSession) -> Dict[str, List[Any]]:
         {"code": "RCE", "name_en": "Rice"},
         {"code": "MAZ", "name_en": "Maize"} # Added
     ]
+
+    tr_data = ["Annual", "Monthly", "Daily", "Snapshot"]
+    results["temporal_resolutions"] = [(await _get_or_create(session, TemporalResolution, name=n))[0] for n in tr_data]
+    dqf_data = ["RAW", "VALIDATED", "ESTIMATED"]
+    results["data_quality_flags"] = [
+        (await _get_or_create(session, DataQualityFlag, name=n, defaults={"description": f"{n} data"}))[0] for n in
+        dqf_data]
+    currency_data = [{"code": "USD", "name": "US Dollar"}, {"code": "EUR", "name": "Euro"}]
+    results["currencies"] = [(await _get_or_create(session, Currency, {"name": d["name"]}, code=d["code"]))[0] for d in
+                             currency_data]
+    crop_data = [{"code": "WHT", "name_en": "Wheat"}, {"code": "RCE", "name_en": "Rice"}]
+
     results["crops"] = [(await _get_or_create(session, Crop, {"name_en": d["name_en"]}, code=d["code"]))[0] for d in
                         crop_data]
     it_data = ["Dam", "Canal", "Pumping Station"] # Already comprehensive

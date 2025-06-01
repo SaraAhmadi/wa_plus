@@ -38,6 +38,7 @@ async def create_category(
         result = await db.execute(existing_category_query) # Re-check
         return result.scalars().first() # Could be None if rollback was for other IntegrityError
 
+
 async def get_category(
     db: AsyncSession, category_id: int
 ) -> Optional[UnitOfMeasurementCategoryModel]:
@@ -47,6 +48,7 @@ async def get_category(
     query = select(UnitOfMeasurementCategoryModel).where(UnitOfMeasurementCategoryModel.id == category_id)
     result = await db.execute(query)
     return result.scalars().first()
+
 
 async def get_categories(
     db: AsyncSession, skip: int = 0, limit: int = 100
@@ -58,6 +60,7 @@ async def get_categories(
     result = await db.execute(query)
     return result.scalars().all()
 
+
 async def get_category_by_name(
     db: AsyncSession, name: str
 ) -> Optional[UnitOfMeasurementCategoryModel]:
@@ -68,3 +71,4 @@ async def get_category_by_name(
     query = select(UnitOfMeasurementCategoryModel).where(UnitOfMeasurementCategoryModel.name == name)
     result = await db.execute(query)
     return result.scalars().first()
+
