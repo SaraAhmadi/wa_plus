@@ -45,7 +45,7 @@ async def create_user_by_admin(
 @router.get("/", response_model=PaginatedResponse[UserSchema])
 async def read_users_by_admin(
     db: AsyncSession = Depends(get_db),
-    skip: int = Query(0, description="Number of records to skip for pagination", ge=0),
+    offset: int = Query(0, description="Number of records to offset for pagination", ge=0),
     limit: int = Query(100, description="Maximum number of records to return", ge=1, le=200)
 ) -> PaginatedResponse[UserSchema]:
     """
@@ -54,11 +54,11 @@ async def read_users_by_admin(
     """
     user_service = UserService(db)
     total_users = await user_service.get_total_user_count()
-    users_list = await user_service.get_multi_with_pagination(skip=skip, limit=limit)
+    users_list = await user_service.get_multi_with_pagination(offset=offset, limit=limit)
 
     return PaginatedResponse[UserSchema](
         total=total_users,
-        page=(skip // limit) + 1 if limit > 0 else 1, # Ensure page is at least 1
+        page=(offset // limit) + 1 if limit > 0 else 1, # Ensure page is at least 1
         size=len(users_list),
         pages=(total_users + limit - 1) // limit if limit > 0 else (1 if total_users > 0 else 0), # Handle limit=0 or total_users=0
         items=users_list
