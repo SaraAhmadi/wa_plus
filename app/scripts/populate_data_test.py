@@ -528,7 +528,7 @@ async def populate_main_data(session: AsyncSession, lookups: Dict[str, List[Any]
                 "infrastructure_type_id": dam_type_specific.id,
                 "reporting_unit_id": ru_blue_river_basin.id,
                 "operational_status_id": op_status_specific.id,
-                "capacity_value": Decimal("120.5"),
+                "capacity": Decimal("120.5"),
                 "capacity_unit_id": uom_mcm.id,
                 "construction_year": 2005
             }
