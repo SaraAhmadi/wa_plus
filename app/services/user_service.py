@@ -109,8 +109,26 @@ class UserService(BaseService[User, UserCreate, UserUpdate]):
 
         self.db_session.add(user)
         await self.db_session.commit()
-        await self.db_session.refresh(user, attribute_names=['roles'])
-        return user
+
+        # Re-fetch the user with all required relationships loaded for the response model
+        # This leverages the existing get_user_by_id_with_relations method which should
+        # already have the necessary selectinload options for roles and permissions.
+        user_id_after_commit = user.id # Store id in case 'user' object state is tricky after commit/session changes
+        refreshed_user_with_relations = await self.get_user_by_id_with_relations(user_id=user_id_after_commit)
+
+        if refreshed_user_with_relations is None:
+            # This case should ideally not be reached if the commit was successful.
+            # Consider logging an error here.
+            # Raising an exception might be more appropriate than returning a potentially problematic 'user' object.
+            # However, to minimize changes and match previous patterns, we'll log and raise for now.
+            # (Alternative: return the 'user' object, but it might not have fully loaded relations for Pydantic)
+            # For now, let's make it explicit that this is an unexpected state.
+            # In a real scenario, one might also consider if the original 'user' object
+            # could be made to work with more targeted refresh operations, but re-fetching is often cleaner.
+            print(f"ERROR: User with ID {user_id_after_commit} not found after update and commit. This is unexpected.") # Simple print for subtask log
+            raise Exception(f"Failed to re-fetch user {user_id_after_commit} after update, which is required for ensuring all response data is loaded.")
+
+        return refreshed_user_with_relations
 
     async def activate_user(self, user: User) -> User:
         user.is_active = True
@@ -140,7 +158,6 @@ class UserService(BaseService[User, UserCreate, UserUpdate]):
             select(self.model)
             .options(selectinload(User.roles).selectinload(Role.permissions)) # Eagerly load roles and their permissions
             .offset(offset)
-
             .limit(limit)
             .order_by(User.id) # Consistent ordering for pagination
         )
