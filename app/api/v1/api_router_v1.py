@@ -23,7 +23,7 @@ api_router_v1.include_router(timeseries.router, prefix="/timeseries", tags=["Tim
 api_router_v1.include_router(summary_data.router, prefix="/summary-data", tags=["Summary Data"])
 api_router_v1.include_router(land_and_agriculture.router, prefix="/land-agriculture", tags=["Land and Agriculture"])
 api_router_v1.include_router(map_layers.router, prefix="/map-layers", tags=["Map Layers"])
-api_router_v1.include_router(unit_of_measurement_category.router, prefix="/unit-of-measurement-categories", tags=["Unit of Measurement Categories"])
+api_router_v1.include_router(unit_of_measurement_category.router, prefix="/measurement-units", tags=["Unit of Measurement Categories"])
 api_router_v1.include_router(exports.router, prefix="/export", tags=["Data Export"])
 
 # api_router_v1.include_router(admin_roles.router, prefix="/admin/roles", tags=["Admin - Roles"])
