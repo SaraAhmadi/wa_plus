@@ -1,9 +1,5 @@
-# Make models easily accessible `from app.database.models import User, Role, ...`
+# Make models easily accessible `from app.database.models import ...`
 from .base_model import Base
-from .user import User
-from .role import Role
-from .permission import Permission
-from .role_permission import user_roles_association, role_permissions_association
 
 from .reporting_unit_type import ReportingUnitType
 from .reporting_unit import ReportingUnit
@@ -29,11 +25,6 @@ from .financial_account import FinancialAccount
 # You can also define __all__ for explicit exports
 __all__ = [
     "Base",
-    "User",
-    "Role",
-    "Permission",
-    "user_roles_association",
-    "role_permissions_association",
     "ReportingUnitType",
     "ReportingUnit",
     "UnitOfMeasurement",

@@ -1,8 +1,4 @@
 from .base_schema import BaseSchema, BaseSchemaRead, PaginatedResponse
-from .token import Token, TokenData
-from .user import User, UserCreate, UserUpdate, UserInDB # Assuming UserInDB is also defined
-from .role import Role, RoleCreate, RoleUpdate
-from .permission import Permission, PermissionCreate, PermissionUpdate
 
 from .reporting_unit import (
     ReportingUnit, ReportingUnitCreate, ReportingUnitUpdate, ReportingUnitSimple,
@@ -52,10 +48,6 @@ from .financial_account import (FinancialAccount as FinancialAccountSchema, Fina
 # It's generally a good practice to call it on your main "Read" schemas
 # that might have such dependencies.
 
-User.model_rebuild(force=True) # Add force=True if you encounter issues with repeated calls or complex scenarios
-Role.model_rebuild(force=True)
-Permission.model_rebuild(force=True)
-
 ReportingUnit.model_rebuild(force=True)
 ReportingUnitType.model_rebuild(force=True) # Usually simple, but good practice
 UnitOfMeasurement.model_rebuild(force=True)
@@ -86,10 +78,6 @@ FinancialAccountSchema.model_rebuild(force=True)
 # --- __all__ definition for explicit exports (Optional but good practice) ---
 __all__ = [
     "BaseSchema", "BaseSchemaRead", "PaginatedResponse",
-    "Token", "TokenData",
-    "User", "UserCreate", "UserUpdate", "UserInDB",
-    "Role", "RoleCreate", "RoleUpdate",
-    "Permission", "PermissionCreate", "PermissionUpdate",
     "ReportingUnit", "ReportingUnitCreate", "ReportingUnitUpdate", "ReportingUnitSimple",
     "ReportingUnitType", "ReportingUnitTypeCreate", "ReportingUnitTypeUpdate",
     "UnitOfMeasurement", "UnitOfMeasurementCreate", "UnitOfMeasurementUpdate",

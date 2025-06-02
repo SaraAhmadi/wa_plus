@@ -238,8 +238,6 @@ services:
       - POETRY_NO_INTERACTION=1
       - PYTHONPATH=/app
       - RUN_MIGRATIONS=false # Celery beat should NOT run migrations
-      - POETRY_VIRTUALENVS_CREATE=false
-      - POETRY_NO_INTERACTION=1
     volumes: # Mount code for development consistency
       - ./app:/app/app
       - ./data_ingestion:/app/data_ingestion # If tasks are here
