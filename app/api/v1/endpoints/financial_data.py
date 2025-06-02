@@ -8,26 +8,13 @@ from datetime import date, datetime # For date query parameters
 # Import dependencies, services, and schemas
 # These will be created/refined in subsequent steps.
 # from app.dependencies.get_db_session import get_async_db
-# from app.dependencies.get_current_user import get_current_active_user
 # from app.services import data_service
 # from app.schemas import indicator_timeseries as ts_schema # Pydantic schemas for response
-# from app.models.user import User as UserModel # For type hinting current_user
 
 
 # --- Temporary placeholders for imports ---
 class MockAsyncSession: pass
 def get_async_db(): yield MockAsyncSession()
-
-
-class MockUserModel:
-    id: int
-    username: str
-    role: dict
-
-
-async def get_current_active_user() -> MockUserModel:
-    print("Mock get_current_active_user: Assuming a generic authenticated user.")
-    return MockUserModel(id=1, username="mockuser", role={"name": "Researcher"})
 
 
 # Mock TimeSeries Schemas (Simplified from SSR 8.4.4, 8.5.1)
@@ -114,8 +101,7 @@ data_service = MockDataService()
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
-    tags=["Time-Series Data"],
-    # dependencies=[Depends(get_current_active_user)] # All time-series data likely requires authentication
+    tags=["Time-Series Data"]
 )
 
 @router.get(
@@ -143,7 +129,6 @@ async def get_timeseries_data_endpoint(
     temporal_resolution: Optional[str] = Query(None, description="Desired temporal resolution for the output data (e.g., 'Raw', 'Daily', 'Monthly', 'Annual', 'Seasonal'). If different from raw, aggregation_method might be needed.", example="Monthly"),
     aggregation_method: Optional[str] = Query(None, description="Aggregation method if temporal_resolution implies aggregation (e.g., 'Average', 'Sum', 'Min', 'Max').", example="Average"),
     data_status_filter: Optional[str] = Query(None, description="Filter data by status if applicable (e.g., 'Actual', 'Planned', 'Forecasted', 'Imputed').", example="Actual")
-    # current_user: MockUserModel = Depends(get_current_active_user) # If endpoint needs to be protected
 ) -> TimeSeriesCollectionResponseSchema:
     """
     Retrieves time-series data based on multiple filter criteria.

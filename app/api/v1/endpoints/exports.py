@@ -5,10 +5,9 @@ from datetime import datetime
 from fastapi.responses import StreamingResponse
 import io
 
-from app.dependencies import get_db, get_current_user
+from app.dependencies import get_db
 from app.services.data_service import DataService
 from app.services.export_service import ExportService
-from app.schemas.user import User as UserSchema  # For current_user type hint if needed
 
 # Import any specific Pydantic schemas for request bodies if an export request becomes complex
 
@@ -33,8 +32,8 @@ async def export_data_as_csv(
         # Summary specific
         aggregation_method: Optional[str] = Query(None, description="Aggregation method for summary data"),
         # --- Dependencies ---
-        db: AsyncSession = Depends(get_db),
-        current_user: UserSchema = Depends(get_current_user)  # Exports are typically authenticated
+        db: AsyncSession = Depends(get_db)
+        # current_user: UserSchema = Depends(get_current_user)  # Exports are typically authenticated
 ):
     """
     Export currently filtered/viewed tabular data as a CSV file.

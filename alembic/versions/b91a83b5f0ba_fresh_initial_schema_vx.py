@@ -91,16 +91,16 @@ def upgrade():
     )
     op.create_index(op.f('ix_operational_status_types_id'), 'operational_status_types', ['id'], unique=False)
     op.create_index(op.f('ix_operational_status_types_name'), 'operational_status_types', ['name'], unique=True)
-    op.create_table('permissions',
-    sa.Column('name', sa.String(length=100), nullable=False),
-    sa.Column('description', sa.Text(), nullable=True),
-    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
-    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_permissions_id'), 'permissions', ['id'], unique=False)
-    op.create_index(op.f('ix_permissions_name'), 'permissions', ['name'], unique=True)
+    # op.create_table('permissions',
+    # sa.Column('name', sa.String(length=100), nullable=False),
+    # sa.Column('description', sa.Text(), nullable=True),
+    # sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    # sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+    # sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
+    # sa.PrimaryKeyConstraint('id')
+    # )
+    # op.create_index(op.f('ix_permissions_id'), 'permissions', ['id'], unique=False)
+    # op.create_index(op.f('ix_permissions_name'), 'permissions', ['name'], unique=True)
     op.create_table('reporting_unit_types',
     sa.Column('name', sa.String(length=100), nullable=False),
     sa.Column('description', sa.Text(), nullable=True),
@@ -111,16 +111,16 @@ def upgrade():
     )
     op.create_index(op.f('ix_reporting_unit_types_id'), 'reporting_unit_types', ['id'], unique=False)
     op.create_index(op.f('ix_reporting_unit_types_name'), 'reporting_unit_types', ['name'], unique=True)
-    op.create_table('roles',
-    sa.Column('name', sa.String(length=100), nullable=False),
-    sa.Column('description', sa.Text(), nullable=True),
-    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
-    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_roles_id'), 'roles', ['id'], unique=False)
-    op.create_index(op.f('ix_roles_name'), 'roles', ['name'], unique=True)
+    # op.create_table('roles',
+    # sa.Column('name', sa.String(length=100), nullable=False),
+    # sa.Column('description', sa.Text(), nullable=True),
+    # sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    # sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+    # sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
+    # sa.PrimaryKeyConstraint('id')
+    # )
+    # op.create_index(op.f('ix_roles_id'), 'roles', ['id'], unique=False)
+    # op.create_index(op.f('ix_roles_name'), 'roles', ['name'], unique=True)
     op.create_table('temporal_resolutions',
     sa.Column('name', sa.String(length=100), nullable=False),
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
@@ -142,21 +142,21 @@ def upgrade():
     sa.UniqueConstraint('name')
     )
     op.create_index(op.f('ix_unit_of_measurements_id'), 'unit_of_measurements', ['id'], unique=False)
-    op.create_table('users',
-    sa.Column('email', sa.String(length=255), nullable=False),
-    sa.Column('hashed_password', sa.String(length=255), nullable=False),
-    sa.Column('full_name', sa.String(length=255), nullable=True),
-    sa.Column('is_active', sa.Boolean(), nullable=False),
-    sa.Column('is_superuser', sa.Boolean(), nullable=False),
-    sa.Column('username', sa.String(length=100), nullable=True),
-    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
-    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
-    op.create_index(op.f('ix_users_id'), 'users', ['id'], unique=False)
-    op.create_index(op.f('ix_users_username'), 'users', ['username'], unique=True)
+    # op.create_table('users',
+    # sa.Column('email', sa.String(length=255), nullable=False),
+    # sa.Column('hashed_password', sa.String(length=255), nullable=False),
+    # sa.Column('full_name', sa.String(length=255), nullable=True),
+    # sa.Column('is_active', sa.Boolean(), nullable=False),
+    # sa.Column('is_superuser', sa.Boolean(), nullable=False),
+    # sa.Column('username', sa.String(length=100), nullable=True),
+    # sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    # sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+    # sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
+    # sa.PrimaryKeyConstraint('id')
+    # )
+    # op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
+    # op.create_index(op.f('ix_users_id'), 'users', ['id'], unique=False)
+    # op.create_index(op.f('ix_users_username'), 'users', ['username'], unique=True)
     op.create_table('indicator_definitions',
     sa.Column('code', sa.String(length=100), nullable=False),
     sa.Column('name_en', sa.String(length=255), nullable=False),
@@ -196,20 +196,20 @@ def upgrade():
     op.create_index(op.f('ix_reporting_units_id'), 'reporting_units', ['id'], unique=False)
     op.create_index(op.f('ix_reporting_units_name'), 'reporting_units', ['name'], unique=False)
     op.create_index(op.f('ix_reporting_units_parent_unit_id'), 'reporting_units', ['parent_unit_id'], unique=False)
-    op.create_table('role_permissions',
-    sa.Column('role_id', sa.Integer(), nullable=False),
-    sa.Column('permission_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['permission_id'], ['permissions.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['role_id'], ['roles.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('role_id', 'permission_id')
-    )
-    op.create_table('user_roles',
-    sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('role_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['role_id'], ['roles.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('user_id', 'role_id')
-    )
+    # op.create_table('role_permissions',
+    # sa.Column('role_id', sa.Integer(), nullable=False),
+    # sa.Column('permission_id', sa.Integer(), nullable=False),
+    # sa.ForeignKeyConstraint(['permission_id'], ['permissions.id'], ondelete='CASCADE'),
+    # sa.ForeignKeyConstraint(['role_id'], ['roles.id'], ondelete='CASCADE'),
+    # sa.PrimaryKeyConstraint('role_id', 'permission_id')
+    # )
+    # op.create_table('user_roles',
+    # sa.Column('user_id', sa.Integer(), nullable=False),
+    # sa.Column('role_id', sa.Integer(), nullable=False),
+    # sa.ForeignKeyConstraint(['role_id'], ['roles.id'], ondelete='CASCADE'),
+    # sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
+    # sa.PrimaryKeyConstraint('user_id', 'role_id')
+    # )
     op.create_table('cropping_patterns',
     sa.Column('reporting_unit_id', sa.Integer(), nullable=False),
     sa.Column('crop_id', sa.Integer(), nullable=False),
@@ -348,8 +348,8 @@ def downgrade():
     op.drop_table('infrastructures')
     op.drop_index(op.f('ix_cropping_patterns_id'), table_name='cropping_patterns')
     op.drop_table('cropping_patterns')
-    op.drop_table('user_roles')
-    op.drop_table('role_permissions')
+    # op.drop_table('user_roles')
+    # op.drop_table('role_permissions')
     op.drop_index(op.f('ix_reporting_units_parent_unit_id'), table_name='reporting_units')
     op.drop_index(op.f('ix_reporting_units_name'), table_name='reporting_units')
     op.drop_index(op.f('ix_reporting_units_id'), table_name='reporting_units')
@@ -358,23 +358,23 @@ def downgrade():
     op.drop_index(op.f('ix_indicator_definitions_id'), table_name='indicator_definitions')
     op.drop_index(op.f('ix_indicator_definitions_code'), table_name='indicator_definitions')
     op.drop_table('indicator_definitions')
-    op.drop_index(op.f('ix_users_username'), table_name='users')
-    op.drop_index(op.f('ix_users_id'), table_name='users')
-    op.drop_index(op.f('ix_users_email'), table_name='users')
-    op.drop_table('users')
+    # op.drop_index(op.f('ix_users_username'), table_name='users')
+    # op.drop_index(op.f('ix_users_id'), table_name='users')
+    # op.drop_index(op.f('ix_users_email'), table_name='users')
+    # op.drop_table('users')
     op.drop_index(op.f('ix_unit_of_measurements_id'), table_name='unit_of_measurements')
     op.drop_table('unit_of_measurements')
     op.drop_index(op.f('ix_temporal_resolutions_id'), table_name='temporal_resolutions')
     op.drop_table('temporal_resolutions')
-    op.drop_index(op.f('ix_roles_name'), table_name='roles')
-    op.drop_index(op.f('ix_roles_id'), table_name='roles')
-    op.drop_table('roles')
+    # op.drop_index(op.f('ix_roles_name'), table_name='roles')
+    # op.drop_index(op.f('ix_roles_id'), table_name='roles')
+    # op.drop_table('roles')
     op.drop_index(op.f('ix_reporting_unit_types_name'), table_name='reporting_unit_types')
     op.drop_index(op.f('ix_reporting_unit_types_id'), table_name='reporting_unit_types')
     op.drop_table('reporting_unit_types')
-    op.drop_index(op.f('ix_permissions_name'), table_name='permissions')
-    op.drop_index(op.f('ix_permissions_id'), table_name='permissions')
-    op.drop_table('permissions')
+    # op.drop_index(op.f('ix_permissions_name'), table_name='permissions')
+    # op.drop_index(op.f('ix_permissions_id'), table_name='permissions')
+    # op.drop_table('permissions')
     op.drop_index(op.f('ix_operational_status_types_name'), table_name='operational_status_types')
     op.drop_index(op.f('ix_operational_status_types_id'), table_name='operational_status_types')
     op.drop_table('operational_status_types')

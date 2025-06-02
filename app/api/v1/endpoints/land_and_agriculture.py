@@ -2,9 +2,8 @@ from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_db, get_current_user
+from app.dependencies import get_db
 from app.services.data_service import DataService
-from app.schemas.user import User as UserSchema
 # from app.schemas.cropping_pattern import CroppingPattern as CroppingPatternSchema # If DataService returned models
 
 router = APIRouter()
@@ -16,8 +15,8 @@ async def get_cropping_pattern_data(
     time_period_year: int = Query(..., description="Agricultural or calendar year"),
     time_period_season: Optional[str] = Query(None, description="Specific season (e.g., 'Kharif', 'Rabi')"),
     pattern_type: Optional[str] = Query(None, description="Type of pattern ('Actual', 'Planned')"),
-    db: AsyncSession = Depends(get_db),
-    current_user: UserSchema = Depends(get_current_user), # Agricultural data likely requires auth
+    db: AsyncSession = Depends(get_db)
+    # current_user: UserSchema = Depends(get_current_user), # Agricultural data likely requires auth
 ):
     """
     Retrieve data on actual or planned cropping patterns for a specific reporting unit and year/season.

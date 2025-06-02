@@ -81,10 +81,6 @@ class Settings(BaseSettings):
             path=data_dict.get("POSTGRES_DB"),
         )
 
-    SECRET_KEY: str = secrets.token_urlsafe(32)
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 1
-    JWT_ALGORITHM: str = "HS256"
-
     REDIS_HOST: str = "redis"
     REDIS_PORT: int = 6379
     REDIS_DB: int = 0
