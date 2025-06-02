@@ -26,7 +26,7 @@ async def get_geographic_units_catalog(
     unit_type_id: Optional[int] = Query(None, description="Filter by reporting unit type ID"),
     parent_unit_id: Optional[int] = Query(None, description="Filter by parent unit ID to get children"),
     search: Optional[str] = Query(None, description="Search term for unit name"),
-    skip: int = Query(0, ge=0),
+    offset: int = Query(0, description="Number of records to offset for pagination", ge=0),
     limit: int = Query(100, ge=1, le=200)
 ):
     """
@@ -38,7 +38,7 @@ async def get_geographic_units_catalog(
         unit_type_id=unit_type_id,
         parent_unit_id=parent_unit_id,
         search_term=search,
-        skip=skip,
+        offset=offset,
         limit=limit
     )
     return units
@@ -80,7 +80,7 @@ async def get_indicators_catalog(
     # current_user: UserSchema = Depends(get_current_user), # Auth if needed
     category_id: Optional[int] = Query(None, description="Filter by indicator category ID"),
     data_type: Optional[str] = Query(None, description="Filter by data type (e.g., 'time-series', 'spatial_raster')"),
-    skip: int = Query(0, ge=0),
+    offset: int = Query(0, description="Number of records to offset for pagination", ge=0),
     limit: int = Query(100, ge=1, le=200)
 ):
     """
@@ -91,7 +91,7 @@ async def get_indicators_catalog(
     indicators = await data_service.get_indicator_definitions(
         category_id=category_id,
         data_type_filter=data_type,
-        skip=skip,
+        offset=offset,
         limit=limit
     )
     return indicators
@@ -172,12 +172,12 @@ async def get_infrastructure_types_catalog(
 async def get_crops_catalog(
     db: AsyncSession = Depends(get_db),
     # current_user: UserSchema = Depends(get_current_user),
-    skip: int = Query(0, ge=0),
+    offset: int = Query(0, description="Number of records to offset for pagination", ge=0),
     limit: int = Query(100, ge=1, le=200)
 ):
     """Retrieve a list of available crop types."""
     # This would need a general get_crops method in DataService
     # data_service = DataService(db)
-    # crops = await data_service.get_all_crops(skip=skip, limit=limit) # Example method
+    # crops = await data_service.get_all_crops(offset=offset, limit=limit) # Example method
     # return crops
     raise HTTPException(status_code=501, detail="Crops catalog endpoint not fully implemented in service yet.")

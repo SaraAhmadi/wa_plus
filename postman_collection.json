@@ -101,7 +101,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"email\": \"newuser@example.com\",\n    \"password\": \"newpassword\",\n    \"username\": \"newusername\",\n    \"full_name\": \"New User Full Name\",\n    \"is_active\": true,\n    \"is_superuser\": false\n}",
+                            "raw": "{\n    \"email\": \"newuser@example.com\",\n    \"password\": \"newpassword\",\n    \"username\": \"newusername\",\n    \"full_name\": \"New User Full Name\",\n    \"is_active\": true,\n    \"is_superuser\": false,\n    \"role_ids\": []\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -131,7 +131,7 @@
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/api/v1/admin/users/?skip=0&limit=10&filter_params=%7B%22username%22%3A%20%22test%22%7D",
+                            "raw": "{{baseUrl}}/api/v1/admin/users/?offset=0&limit=10",
                             "host": [
                                 "{{baseUrl}}"
                             ],
@@ -144,17 +144,12 @@
                             ],
                             "query": [
                                 {
-                                    "key": "skip",
+                                    "key": "offset",
                                     "value": "0"
                                 },
                                 {
                                     "key": "limit",
                                     "value": "10"
-                                },
-                                {
-                                    "key": "filter_params",
-                                    "value": "{\"username\": \"test\"}",
-                                    "disabled": true
                                 }
                             ]
                         },
@@ -202,7 +197,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"email\": \"updateduser@example.com\",\n    \"password\": \"updatedpassword\",\n    \"username\": \"updatedusername\",\n    \"full_name\": \"Updated User Full Name\",\n    \"is_active\": true,\n    \"is_superuser\": false\n}",
+                            "raw": "{\n    \"email\": \"updateduser@example.com\",\n    \"password\": \"updatedpassword\",\n    \"username\": \"updatedusername\",\n    \"full_name\": \"Updated User Full Name\",\n    \"is_active\": true,\n    \"is_superuser\": false,\n    \"role_ids\": []\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -260,7 +255,183 @@
                     },
                     "response": []
                 }
-            ]
+            ],
+            "description": "Administrative operations for managing users."
+        },
+        {
+            "name": "Admin - Roles",
+            "item": [
+                {
+                    "name": "Create Role",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"New Role Name\",\n    \"description\": \"Description for the new role.\",\n    \"permission_ids\": [1, 2]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/admin/roles/",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "admin",
+                                "roles",
+                                ""
+                            ]
+                        },
+                        "description": "Create a new role with specified permissions. Requires superuser privileges."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "List Roles",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/admin/roles/?offset=0&limit=100",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "admin",
+                                "roles",
+                                ""
+                            ],
+                            "query": [
+                                {
+                                    "key": "offset",
+                                    "value": "0"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "100"
+                                }
+                            ]
+                        },
+                        "description": "List all roles with pagination. Requires superuser privileges."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Role by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/admin/roles/{{role_id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "admin",
+                                "roles",
+                                "{{role_id}}"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "role_id",
+                                    "value": "1",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "description": "Get a specific role by its ID. Requires superuser privileges."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Role",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Updated Role Name\",\n    \"description\": \"Updated description.\",\n    \"permission_ids\": [3, 4]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/admin/roles/{{role_id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "admin",
+                                "roles",
+                                "{{role_id}}"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "role_id",
+                                    "value": "1",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "description": "Update an existing role. Requires superuser privileges."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Role",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/admin/roles/{{role_id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "admin",
+                                "roles",
+                                "{{role_id}}"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "role_id",
+                                    "value": "1",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "description": "Delete a role by its ID. Requires superuser privileges."
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Administrative operations for managing roles and their permissions."
         },
         {
             "name": "Metadata Catalog",
@@ -271,7 +442,7 @@
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/api/v1/metadata/geographic-units?skip=0&limit=100",
+                            "raw": "{{baseUrl}}/api/v1/metadata/geographic-units?offset=0&limit=100",
                             "host": [
                                 "{{baseUrl}}"
                             ],
@@ -301,7 +472,7 @@
                                     "description": "(string, optional)"
                                 },
                                 {
-                                    "key": "skip",
+                                    "key": "offset",
                                     "value": "0"
                                 },
                                 {
@@ -370,7 +541,7 @@
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/api/v1/metadata/indicators?skip=0&limit=100",
+                            "raw": "{{baseUrl}}/api/v1/metadata/indicators?offset=0&limit=100",
                             "host": [
                                 "{{baseUrl}}"
                             ],
@@ -394,7 +565,7 @@
                                     "description": "(string, optional)"
                                 },
                                 {
-                                    "key": "skip",
+                                    "key": "offset",
                                     "value": "0"
                                 },
                                 {
@@ -547,7 +718,7 @@
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/api/v1/metadata/crops?skip=0&limit=100",
+                            "raw": "{{baseUrl}}/api/v1/metadata/crops?offset=0&limit=100",
                             "host": [
                                 "{{baseUrl}}"
                             ],
@@ -559,7 +730,7 @@
                             ],
                             "query": [
                                 {
-                                    "key": "skip",
+                                    "key": "offset",
                                     "value": "0"
                                 },
                                 {
@@ -745,7 +916,7 @@
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/api/v1/unit-of-measurement-categories/?skip=0&limit=100",
+                            "raw": "{{baseUrl}}/api/v1/unit-of-measurement-categories/?offset=0&limit=100",
                             "host": [
                                 "{{baseUrl}}"
                             ],
@@ -757,9 +928,9 @@
                             ],
                             "query": [
                                 {
-                                    "key": "skip",
+                                    "key": "offset",
                                     "value": "0",
-                                    "description": "Number of records to skip"
+                                    "description": "Number of records to offset"
                                 },
                                 {
                                     "key": "limit",
