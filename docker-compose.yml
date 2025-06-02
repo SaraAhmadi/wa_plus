@@ -35,9 +35,7 @@ services:
     volumes:
       # Mount local code for development (live reload if uvicorn is run with --reload)
       # For production, this is usually removed as code is baked into the image.
-      - ./app:/app/app
-      - ./alembic:/app/alembic
-      - ./alembic.ini:/app/alembic.ini
+      - ./core:/app/core
       - ./gunicorn_conf.py:/app/gunicorn_conf.py
       - ./entrypoint.sh:/app/entrypoint.sh # Ensure entrypoint is also available if modified locally
       # - ./data_external:/app/data_external # If used by the app service

@@ -5,7 +5,7 @@ bind = "0.0.0.0:8000"  # Listen on all network interfaces, port 8000
 
 # Worker processes
 workers = multiprocessing.cpu_count() * 2 + 1  # Optimal for CPU-bound apps
-worker_class = "uvicorn.workers.UvicornWorker"  # Required for FastAPI (ASGI)
+worker_class = "sync"  # For Django (WSGI)
 timeout = 120  # Kill workers after 120s if they hang
 keepalive = 5  # Keep-alive connections for 5s
 

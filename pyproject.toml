@@ -42,7 +42,7 @@ celery-redbeat = "^2.3.2"
 
 
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"
 pytest-asyncio = "^0.23.2"
 httpx = "^0.26.0" # For testing FastAPI async apps

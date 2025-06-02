@@ -38,7 +38,8 @@ COPY pyproject.toml poetry.lock* ./
 # Install Python dependencies using Poetry
 # This also installs executables like gunicorn, uvicorn, alembic, celery
 RUN poetry config virtualenvs.create false && \
-    poetry install --no-interaction --no-ansi --only main && \
+    poetry export -f requirements.txt --output requirements.txt --without-hashes || echo "Poetry export failed, proceeding with poetry install attempt" && \
+    poetry install --no-interaction --no-ansi --only main || pip install -r requirements.txt && \
     echo "--- Verifying key executables in builder stage PATH: ---" && \
     (which poetry || echo "poetry not in PATH") && \
     (which alembic || echo "alembic not in PATH") && \
@@ -84,11 +85,9 @@ COPY --from=builder /usr/local/bin/ /usr/local/bin/
 COPY --from=builder /opt/poetry/ /opt/poetry/
 
 # Copy application code and necessary configuration files
-COPY --chown=appuser:appgroup ./app /app/app
+COPY --chown=appuser:appgroup ./core /app/core
 # COPY --chown=appuser:appgroup ./data_external /app/data_external # If exists and needed
 COPY --chown=appuser:appgroup ./gunicorn_conf.py /app/gunicorn_conf.py
-COPY --chown=appuser:appgroup ./alembic.ini /app/alembic.ini
-COPY --chown=appuser:appgroup ./alembic /app/alembic
 COPY --chown=appuser:appgroup ./entrypoint.sh /app/entrypoint.sh
 COPY --chown=appuser:appgroup ./pyproject.toml /app/pyproject.toml
 COPY --chown=appuser:appgroup ./poetry.lock /app/poetry.lock
@@ -105,4 +104,4 @@ USER appuser
 
 EXPOSE 8000
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "-c", "gunicorn_conf.py", "app.main:app"]
+CMD ["gunicorn", "-c", "gunicorn_conf.py", "core.wsgi:application"]
