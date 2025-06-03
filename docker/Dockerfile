@@ -13,7 +13,6 @@ ENV LC_ALL en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US.UTF-8
 
-
 # Install build-time system dependencies from Debian Bookworm's repositories
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -42,7 +41,7 @@ RUN curl -sSL https://install.python-poetry.org | python3 - --version "$POETRY_V
 WORKDIR /app
 
 # Copy from app directory in project root
-COPY app .
+COPY app/pyproject.toml app/poetry.lock ./
 
 # Install Python dependencies using Poetry
 RUN poetry config virtualenvs.create false && \
@@ -68,8 +67,6 @@ RUN apt-get update && \
     postgresql-client \
     postgis \
     libgeos-c1v5 \
-    libproj22 \
-    libgdal34 \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -83,16 +80,11 @@ COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/pytho
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
 
 ## Copy application code from app directory
-#COPY --chown=appuser:appgroup app/core /app/core
-#COPY --chown=appuser:appgroup app/gunicorn_conf.py /app/gunicorn_conf.py
-#COPY --chown=appuser:appgroup app/entrypoint.sh /app/entrypoint.sh
-#COPY --chown=appuser:appgroup app/pyproject.toml /app/pyproject.toml
-#COPY --chown=appuser:appgroup app/poetry.lock /app/poetry.lock
-
-
-RUN chown -R user:user /srv/
-RUN chmod -R 755 /srv/
-
+COPY --chown=appuser:appgroup app/core /app/core
+COPY --chown=appuser:appgroup app/gunicorn_conf.py /app/gunicorn_conf.py
+COPY --chown=appuser:appgroup app/entrypoint.sh /app/entrypoint.sh
+COPY --chown=appuser:appgroup app/pyproject.toml /app/pyproject.toml
+COPY --chown=appuser:appgroup app/poetry.lock /app/poetry.lock
 
 RUN chmod u+x /app/entrypoint.sh
 
