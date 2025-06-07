@@ -15,6 +15,7 @@ RUN apt-get update && \
     python3-dev \
     libpq-dev \
     libgdal-dev \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
@@ -23,7 +24,7 @@ RUN pip install --no-cache-dir poetry==1.8.2
 WORKDIR /app
 
 # Copy dependency files
-COPY app/pyproject.toml app/poetry.lock ./
+COPY src/pyproject.toml src/poetry.lock ./
 
 # Install Python dependencies
 RUN poetry config virtualenvs.create false && \
@@ -46,7 +47,7 @@ RUN apt-get update && \
     postgis \
     && rm -rf /var/lib/apt/lists/*
 
-# Create application user and group (fixed user creation)
+# Create application user and group
 RUN groupadd -r appgroup && \
     useradd -r -g appgroup appuser
 
@@ -57,7 +58,7 @@ COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/pytho
 COPY --from=builder /usr/local/bin /usr/local/bin/
 
 # Copy application files with proper ownership
-COPY --chown=appuser:appgroup app/ /app/
+COPY --chown=appuser:appgroup src/ /app/
 
 # Set permissions for entrypoint
 RUN chmod u+x /app/entrypoint.sh

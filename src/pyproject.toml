@@ -4,14 +4,20 @@ version = "0.1.0"
 description = "Backend for the WA+ Data Dashboard"
 authors = ["Sara <taheri.sara1991@gmail.com>"]
 readme = "README.md"
+packages = [
+    { include = "core" },
+    { include = "manage.py" },
+]
 
 [tool.poetry.dependencies]
+django-environ = "^0.11.2"  # Latest actual version
 python = ">=3.10,<4"
 
 # Core web framework dependencies
 fastapi = "^0.110.0"
 django = "^5.0.4"  # Added Django with compatible version
 djangorestframework = "^3.15.1"  # For Django REST API
+djangorestframework-simplejwt = "^5.5.0"
 django-cors-headers = "^4.4.0"  # For handling CORS in Django
 channels = {extras = ["daphne"], version = "^4.1.0"}  # For async support in Django
 
@@ -35,7 +41,7 @@ sqlalchemy = {extras = ["asyncio"], version = "^2.0.20"}
 asyncpg = "^0.29.0"
 psycopg2-binary = "^2.9.9"
 alembic = "^1.13.0"
-django-environ = "^0.11.2"  # Latest actual version
+
 
 # Authentication & Security
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}

@@ -9,7 +9,7 @@ services:
     container_name: core_app
     restart: unless-stopped
     env_file:
-      - ../app/.env # Loads variables from .env file first
+      - ../src/.env # Loads variables from .env file first
     environment:
       - SERVICE_ROLE=app # This service will run migrations
       # Application specific settings
@@ -34,13 +34,10 @@ services:
       - RUN_MIGRATIONS=true
     volumes:
       # Mount local code for development (live reload if uvicorn is run with --reload)
-      # For production, this is usually removed as code is baked into the image.
-      - ../app/core:/app/core
-      - ../app/gunicorn_conf.py:/app/gunicorn_conf.py
-      - ../app/entrypoint.sh:/app/entrypoint.sh
-      # - ./data_external:/app/data_external # If used by the app service
-      # - ./static:/app/static # If serving static files directly from FastAPI app
-      # - ./data:/app/data # If app needs to write to a shared data dir (less common for app itself)
+      - ../src/core:/app/core
+      - ../src/gunicorn_conf.py:/app/gunicorn_conf.py
+      - ../src/entrypoint.sh:/app/entrypoint.sh
+      - ../src/manage.py:/app/manage.py
     ports:
       - "${APP_PORT:-8000}:8000" # Use APP_PORT from .env or default to 8000
     depends_on:
@@ -55,7 +52,7 @@ services:
     container_name: core_db
     restart: unless-stopped
     env_file:
-      - ../app/.env # Loads POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
+      - ../src/.env # Loads POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
     # Environment variables are also explicitly listed for clarity and potential overrides
     environment:
       - POSTGRES_HOST_AUTH_METHOD=scram-sha-256 # More secure default
@@ -78,7 +75,7 @@ services:
     container_name: core_pgadmin
     restart: unless-stopped
     env_file:
-      - ../app/.env # Loads PGADMIN_DEFAULT_EMAIL, PGADMIN_DEFAULT_PASSWORD
+      - ../src/.env # Loads PGADMIN_DEFAULT_EMAIL, PGADMIN_DEFAULT_PASSWORD
     environment:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
       - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}

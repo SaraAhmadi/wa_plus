@@ -941,7 +941,7 @@ version = "0.11.2"
 description = "A package that allows you to utilize 12factor inspired environment variables to configure your Django application."
 optional = false
 python-versions = ">=3.6,<4"
-groups = ["geo"]
+groups = ["main"]
 files = [
     {file = "django-environ-0.11.2.tar.gz", hash = "sha256:f32a87aa0899894c27d4e1776fa6b477e8164ed7f6b3e410a62a6d72caaf64be"},
     {file = "django_environ-0.11.2-py2.py3-none-any.whl", hash = "sha256:0ff95ab4344bfeff693836aa978e6840abef2e2f1145adff7735892711590c05"},
@@ -1035,6 +1035,31 @@ files = [
 
 [package.dependencies]
 django = ">=4.2"
+
+[[package]]
+name = "djangorestframework-simplejwt"
+version = "5.5.0"
+description = "A minimal JSON Web Token authentication plugin for Django REST Framework"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "djangorestframework_simplejwt-5.5.0-py3-none-any.whl", hash = "sha256:4ef6b38af20cdde4a4a51d1fd8e063cbbabb7b45f149cc885d38d905c5a62edb"},
+    {file = "djangorestframework_simplejwt-5.5.0.tar.gz", hash = "sha256:474a1b737067e6462b3609627a392d13a4da8a08b1f0574104ac6d7b1406f90e"},
+]
+
+[package.dependencies]
+django = ">=4.2"
+djangorestframework = ">=3.14"
+pyjwt = ">=1.7.1,<2.10.0"
+
+[package.extras]
+crypto = ["cryptography (>=3.3.1)"]
+dev = ["Sphinx (>=1.6.5,<2)", "cryptography", "freezegun", "ipython", "pre-commit", "pytest", "pytest-cov", "pytest-django", "pytest-watch", "pytest-xdist", "python-jose (==3.3.0)", "pyupgrade", "ruff", "sphinx_rtd_theme (>=0.1.9)", "tox", "twine", "wheel", "yesqa"]
+doc = ["Sphinx (>=1.6.5,<2)", "sphinx_rtd_theme (>=0.1.9)"]
+lint = ["pre-commit", "pyupgrade", "ruff", "yesqa"]
+python-jose = ["python-jose (==3.3.0)"]
+test = ["cryptography", "freezegun", "pytest", "pytest-cov", "pytest-django", "pytest-xdist", "tox"]
 
 [[package]]
 name = "dnspython"
@@ -2662,7 +2687,7 @@ version = "2.9.0"
 description = "JSON Web Token implementation in Python"
 optional = false
 python-versions = ">=3.8"
-groups = ["geo"]
+groups = ["main", "geo"]
 files = [
     {file = "PyJWT-2.9.0-py3-none-any.whl", hash = "sha256:3b02fb0f44517787776cf48f2ae25d8e14f300e6d7545a4315cee571a415e850"},
     {file = "pyjwt-2.9.0.tar.gz", hash = "sha256:7e1e5b56cc735432a7369cbfa0efe50fa113ebecdc04ae6922deba8b84582d0c"},
@@ -3846,4 +3871,4 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<4"
-content-hash = "955eef593fe6aa82e0531ba062dfb0d5e2a4fc877b4a340c18890f99f552e970"
+content-hash = "bf83355bb7e9b228caa3ab4a98d1338e81a3e4b8c592be1eff432fb35d593cdc"
