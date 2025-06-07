@@ -1,6 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework import serializers # <--- ADD THIS LINE
 from rest_framework.permissions import IsAdminUser, IsAuthenticated, AllowAny
 from apps.user_management.models import User, Role, Permission
 from .permissions import HasPermission, IsOwnerOrAdmin
