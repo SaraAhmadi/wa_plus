@@ -18,7 +18,7 @@ RUN apt-get update && \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Poetry
+# Install Poetry and system packages
 RUN pip install --no-cache-dir poetry==1.8.2
 
 WORKDIR /app
@@ -29,6 +29,14 @@ COPY src/pyproject.toml src/poetry.lock ./
 # Install Python dependencies
 RUN poetry config virtualenvs.create false && \
     poetry install --no-interaction --no-ansi --only main
+
+# Explicitly install gunicorn
+RUN pip install gunicorn==21.2.0
+RUN pip install "psycopg2-binary==2.9.9"
+
+# Verify installations
+RUN pip list | grep gunicorn && \
+    ls -l $(which gunicorn)
 
 # --- Stage 2: Lean Production Stage ---
 FROM python:3.11-slim AS final_stage
@@ -56,6 +64,10 @@ WORKDIR /app
 # Copy installed Python packages from builder
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages/
 COPY --from=builder /usr/local/bin /usr/local/bin/
+
+# Verify gunicorn in final stage
+RUN ls -l $(which gunicorn) && \
+    gunicorn --help >/dev/null 2>&1
 
 # Copy application files with proper ownership
 COPY --chown=appuser:appgroup src/ /app/

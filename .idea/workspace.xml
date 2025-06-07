@@ -5,60 +5,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c2f2f572-2b48-4a61-9a04-2f154d87cfbc" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/.env" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/README.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/api/v1/permissions.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/api/v1/serializers.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/api/v1/urls.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/api/v1/views.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/apps/user_management/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/apps/user_management/admin.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/apps/user_management/apps.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/apps/user_management/management/commands/create_env_superuser.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/apps/user_management/management/commands/populate_dev_data.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/apps/user_management/migrations/0001_initial.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/apps/user_management/migrations/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/apps/user_management/models.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/apps/user_management/tests.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/apps/user_management/tests/test_models.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/apps/user_management/tests/test_serializers.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/apps/user_management/tests/test_views.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/core/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/core/asgi.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/core/settings.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/core/urls.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/core/wsgi.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/entrypoint.sh" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/gunicorn_conf.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/manage.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/poetry.lock" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/pyproject.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/.env" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/README.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/api/v1/permissions.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/api/v1/serializers.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/api/v1/urls.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/api/v1/views.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/apps/user_management/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/apps/user_management/admin.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/apps/user_management/apps.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/apps/user_management/management/commands/create_env_superuser.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/apps/user_management/management/commands/populate_dev_data.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/apps/user_management/migrations/0001_initial.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/apps/user_management/migrations/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/apps/user_management/models.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/apps/user_management/tests.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/apps/user_management/tests/test_models.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/apps/user_management/tests/test_serializers.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/apps/user_management/tests/test_views.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/entrypoint.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/gunicorn_conf.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/manage.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/poetry.lock" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/pyproject.toml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/docker/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/docker/Dockerfile" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/docker/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker/docker-compose.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/.env" beforeDir="false" afterPath="$PROJECT_DIR$/src/.env" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/api/v1/serializers.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api/v1/serializers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/api/v1/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api/v1/views.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/apps/user_management/apps.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/apps/user_management/apps.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/settings.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/poetry.lock" beforeDir="false" afterPath="$PROJECT_DIR$/src/poetry.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/pyproject.toml" beforeDir="false" afterPath="$PROJECT_DIR$/src/pyproject.toml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -185,7 +142,7 @@
       <workItem from="1748939554334" duration="1362000" />
       <workItem from="1748954997257" duration="381000" />
       <workItem from="1748956085209" duration="13994000" />
-      <workItem from="1749279024918" duration="6770000" />
+      <workItem from="1749279024918" duration="18572000" />
     </task>
     <servers />
   </component>

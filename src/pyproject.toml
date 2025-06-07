@@ -10,6 +10,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
+gunicorn = "^21.2"
 django-environ = "^0.11.2"  # Latest actual version
 python = ">=3.10,<4"
 
@@ -28,7 +29,6 @@ fiona = "1.9.6"
 pyproj = "3.6.1"
 
 # ASGI/WSGI servers
-gunicorn = ">=21.0.0,<22.0.0"
 uvicorn = {extras = ["standard"], version = "^0.29.0"}
 
 # Core utilities
@@ -39,7 +39,7 @@ pydantic-settings = "^2.1.0"
 # Database & ORM
 sqlalchemy = {extras = ["asyncio"], version = "^2.0.20"}
 asyncpg = "^0.29.0"
-psycopg2-binary = "^2.9.9"
+psycopg2-binary = "*"
 alembic = "^1.13.0"
 
 

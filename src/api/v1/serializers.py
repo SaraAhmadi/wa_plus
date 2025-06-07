@@ -1,7 +1,8 @@
 from rest_framework import serializers
-from .models import User, Role, Permission
 from django.contrib.auth.hashers import make_password
 from django.db import transaction
+from apps.user_management.models import User, Role, Permission
+
 
 class PermissionSerializer(serializers.ModelSerializer):
     class Meta:

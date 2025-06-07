@@ -2,7 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAdminUser, IsAuthenticated, AllowAny
-from .models import User, Role, Permission
+from apps.user_management.models import User, Role, Permission
 from .permissions import HasPermission, IsOwnerOrAdmin
 from .serializers import UserSerializer, RoleSerializer, PermissionSerializer, TokenSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView as BaseTokenObtainPairView
