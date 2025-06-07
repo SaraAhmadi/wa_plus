@@ -14,7 +14,13 @@ env = environ.Env(
     # set casting, default value
     DEBUG=(bool, False),
     ALLOWED_HOSTS=(list, []),
-    BACKEND_CORS_ORIGINS=(list, [])
+    BACKEND_CORS_ORIGINS=(list, []),
+    POSTGRES_SERVER=(str, 'db'),
+    POSTGRES_USER=(str, 'user'),
+    POSTGRES_PASSWORD=(str, 'password'),
+    POSTGRES_DB=(str, 'waplus_dashboard_db'),
+    POSTGRES_PORT=(str, '5432'),
+    DATABASE_URL=(str, '')  # Also declare DATABASE_URL itself
 )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -85,12 +91,20 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': env.db_url(
-        'DATABASE_URL',
-        default=f"postgresql://{env('POSTGRES_USER', default='user')}:{env('POSTGRES_PASSWORD', default='password')}@{env('POSTGRES_SERVER', default='localhost')}:{env('POSTGRES_PORT', default='5432')}/{env('POSTGRES_DB', default='waplus_dashboard')}" # Changed default db name
-    )
-}
+DATABASE_URL = env('DATABASE_URL') # This will use the default from Env constructor ('') if not in actual env.
+if DATABASE_URL:
+    DATABASES = {'default': env.db_url_config(DATABASE_URL)}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': env('POSTGRES_DB'),
+            'USER': env('POSTGRES_USER'),
+            'PASSWORD': env('POSTGRES_PASSWORD'),
+            'HOST': env('POSTGRES_SERVER'),
+            'PORT': env('POSTGRES_PORT'),
+        }
+    }
 
 # CORS Configuration
 backend_cors_origins = env('BACKEND_CORS_ORIGINS')

@@ -74,8 +74,6 @@ services:
     image: dpage/pgadmin4:latest # Or pin a version like 7.2
     container_name: core_pgadmin
     restart: unless-stopped
-    env_file:
-      - ../src/.env # Loads PGADMIN_DEFAULT_EMAIL, PGADMIN_DEFAULT_PASSWORD
     environment:
       - PGADMIN_DEFAULT_EMAIL=admin@example.com
       - PGADMIN_DEFAULT_PASSWORD=admin
