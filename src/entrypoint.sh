@@ -27,6 +27,11 @@ if [ "$SERVICE_ROLE" = "app" ]; then
     echo "Running database migrations (as SERVICE_ROLE='app')..."
     python manage.py migrate --noinput
     echo "Database migrations complete (as SERVICE_ROLE='app')."
+
+    echo "Collecting static files (as SERVICE_ROLE='app')..."
+    python manage.py collectstatic --noinput
+    echo "Static files collection complete (as SERVICE_ROLE='app')."
+
 else
     echo "SERVICE_ROLE is '${SERVICE_ROLE}'. Skipping migrations."
     # Still wait for DB if other services need it, but don't run migrations

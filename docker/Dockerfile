@@ -72,6 +72,12 @@ RUN ls -l $(which gunicorn) && \
 # Copy application files with proper ownership
 COPY --chown=appuser:appgroup src/ /app/
 
+# Create staticfiles directory and set ownership
+RUN mkdir -p /app/staticfiles && chown appuser:appgroup /app/staticfiles
+
+# Create staticfiles directory and set ownership
+RUN mkdir -p /app/staticfiles && chown appuser:appgroup /app/staticfiles
+
 # Set permissions for entrypoint
 RUN chmod u+x /app/entrypoint.sh
 

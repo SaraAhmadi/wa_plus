@@ -98,10 +98,3 @@ line-length = 88
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.test"
 python_files = "tests.py test_*.py *_tests.py"
-
-# Django settings configuration example
-[tool.django]
-DEBUG = true
-SECRET_KEY = "django-insecure-*"
-ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
-DATABASES = { default = { ENGINE = "django.db.backends.postgresql", NAME = "waplus", USER = "postgres", PASSWORD = "postgres", HOST = "localhost", PORT = "5432" } }
