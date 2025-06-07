@@ -6,6 +6,10 @@
   <component name="ChangeListManager">
     <list default="true" id="c2f2f572-2b48-4a61-9a04-2f154d87cfbc" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/entrypoint.sh" beforeDir="false" afterPath="$PROJECT_DIR$/app/entrypoint.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/poetry.lock" beforeDir="false" afterPath="$PROJECT_DIR$/app/poetry.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docker/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/docker/Dockerfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docker/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker/docker-compose.yml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -132,7 +136,7 @@
       <workItem from="1748939554334" duration="1362000" />
       <workItem from="1748954997257" duration="381000" />
       <workItem from="1748956085209" duration="13994000" />
-      <workItem from="1749279024918" duration="1243000" />
+      <workItem from="1749279024918" duration="4106000" />
     </task>
     <servers />
   </component>

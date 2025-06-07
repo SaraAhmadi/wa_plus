@@ -25,7 +25,7 @@ if [ "$SERVICE_ROLE" = "app" ]; then
     echo "PostgreSQL is ready for 'app' service!"
 
     echo "Running database migrations (as SERVICE_ROLE='app')..."
-    python /app/core/manage.py migrate --noinput
+    python manage.py migrate --noinput
     echo "Database migrations complete (as SERVICE_ROLE='app')."
 else
     echo "SERVICE_ROLE is '${SERVICE_ROLE}'. Skipping migrations."
