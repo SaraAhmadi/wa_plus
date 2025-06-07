@@ -6,16 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="c2f2f572-2b48-4a61-9a04-2f154d87cfbc" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docker/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/docker/Dockerfile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docker/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker/docker-compose.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/.env" beforeDir="false" afterPath="$PROJECT_DIR$/src/.env" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/api/v1/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api/v1/views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/apps/user_management/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/apps/user_management/admin.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/apps/user_management/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/apps/user_management/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/core/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/settings.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/core/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/urls.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/entrypoint.sh" beforeDir="false" afterPath="$PROJECT_DIR$/src/entrypoint.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pyproject.toml" beforeDir="false" afterPath="$PROJECT_DIR$/src/pyproject.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/api/v1/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api/v1/urls.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -142,7 +133,7 @@
       <workItem from="1748939554334" duration="1362000" />
       <workItem from="1748954997257" duration="381000" />
       <workItem from="1748956085209" duration="13994000" />
-      <workItem from="1749279024918" duration="23094000" />
+      <workItem from="1749279024918" duration="26328000" />
     </task>
     <servers />
   </component>
