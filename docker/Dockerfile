@@ -29,6 +29,7 @@ COPY src/pyproject.toml src/poetry.lock ./
 # Install Python dependencies
 RUN poetry config virtualenvs.create false && \
     poetry install --no-interaction --no-ansi --only main
+RUN poetry run pip install psycopg2-binary
 
 # --- Stage 2: Lean Production Stage ---
 FROM python:3.11-slim AS final_stage
