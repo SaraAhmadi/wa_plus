@@ -13,6 +13,28 @@ from alembic import context  # <<< 'context' is imported from Alembic
 # It's an instance of alembic.config.Config
 config = context.config  # This is correct, context is available here.
 
+# Get database credentials directly from environment
+POSTGRES_USER = os.getenv("POSTGRES_USER", "waplus_user")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "")
+POSTGRES_SERVER = os.getenv("POSTGRES_SERVER", "waplus_db")
+POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
+POSTGRES_DB = os.getenv("POSTGRES_DB", "water_accounting_db")
+
+# Construct database URL
+DATABASE_URL = (
+    f"postgresql+asyncpg://"
+    f"{POSTGRES_USER}:{POSTGRES_PASSWORD}"
+    f"@{POSTGRES_SERVER}:{POSTGRES_PORT}/{POSTGRES_DB}"
+)
+
+print(f"========Environment variables:====================")
+print(f"  ==========POSTGRES_USER: {POSTGRES_USER}")
+print(f"  ==========POSTGRES_SERVER: {POSTGRES_SERVER}")
+print(f"  =========POSTGRES_PORT: {POSTGRES_PORT}")
+print(f"  =========POSTGRES_DB: {POSTGRES_DB}")
+print(f"Constructed DATABASE_URL: {DATABASE_URL}")
+
+
 # --- Python Logging ---
 # Interpret the config file for Python logging.
 # This line reads the logging.ini file if present.
@@ -88,18 +110,20 @@ def do_run_migrations(connection) -> None:
 
 async def run_migrations_online() -> None:
     """Run migrations in 'online' mode using an async engine."""
+    # Use the DATABASE_URL we constructed from environment variables
     connectable = create_async_engine(
-        str(settings.DATABASE_URL),
+        DATABASE_URL,  # Use this instead of settings.DATABASE_URL
         pool_pre_ping=True,
-        poolclass=pool.NullPool # Optional, often good for migration scripts
+        poolclass=pool.NullPool
     )
-    print(f"Alembic (env.py): Running online migrations with ASYNC URL: {settings.DATABASE_URL}")
+    print(f"Alembic (env.py): Running online migrations with ASYNC URL: {DATABASE_URL}")
 
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)
 
     await connectable.dispose()
     print("Alembic (env.py): Online migrations complete, engine disposed.")
+
 
 
 # --- Main execution logic for Alembic ---

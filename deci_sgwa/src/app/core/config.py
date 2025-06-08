@@ -60,25 +60,25 @@ class Settings(BaseSettings):
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def assemble_db_connection(cls, v: Optional[str], info: ValidationInfo) -> Any:
-        if isinstance(v, str):  # If DATABASE_URL is directly provided as a string
-            return v
+        # First check if DATABASE_URL is set directly in environment
+        if os.getenv("DATABASE_URL"):
+            return os.getenv("DATABASE_URL")
 
-        # 'info.data' contains the already validated fields of the model
-        data_dict = info.data
-        if not all(k in data_dict for k in
-                   ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_SERVER", "POSTGRES_DB", "POSTGRES_PORT"]):
-            # This might happen if environment variables are missing and no defaults are provided for these components
-            # Or if DATABASE_URL is None and this validator is still called (shouldn't typically happen without v)
-            raise ValueError(
-                "Missing one or more PostgreSQL connection components (USER, PASSWORD, SERVER, DB, PORT) to assemble DATABASE_URL.")
+        # If not, construct from individual environment variables
+        postgres_user = os.getenv("POSTGRES_USER", "waplus_user")
+        postgres_password = os.getenv("POSTGRES_PASSWORD", "")
+        postgres_server = os.getenv("POSTGRES_SERVER", "localhost")
+        postgres_db = os.getenv("POSTGRES_DB", "waplus_dashboard_db")
+        postgres_port = os.getenv("POSTGRES_PORT", "5432")
 
+        # Construct URL from environment variables
         return PostgresDsn.build(
             scheme="postgresql+asyncpg",
-            username=data_dict.get("POSTGRES_USER"),
-            password=data_dict.get("POSTGRES_PASSWORD"),
-            host=data_dict.get("POSTGRES_SERVER"),
-            port=data_dict.get("POSTGRES_PORT"),  # <<< CORRECTED: Pass as int (or None)
-            path=data_dict.get("POSTGRES_DB"),
+            username=postgres_user,
+            password=postgres_password,
+            host=postgres_server,
+            port=postgres_port,
+            path=postgres_db,
         )
 
     SECRET_KEY: str = secrets.token_urlsafe(32)
