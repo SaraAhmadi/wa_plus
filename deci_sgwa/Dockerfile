@@ -104,6 +104,9 @@ COPY --chown=appuser:appgroup /src /app/
 RUN mkdir -p /app/celery_data && \
     chown appuser:appgroup /app/celery_data
 
+RUN chmod +x /app/entrypoint.sh
+
+
 USER appuser
 
 # Optional: Debugging step to check PATH and executables as appuser

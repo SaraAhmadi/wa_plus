@@ -104,6 +104,7 @@ else:
     }
 
 
+print(f"DEBUG: Django DATABASES['default']['HOST'] is configured to: {DATABASES['default'].get('HOST')}")
 
 
 # CORS Configuration

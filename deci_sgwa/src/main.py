@@ -4,9 +4,9 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager # For lifespan events in newer FastAPI
 
-from src.settings.config import settings
-from src.api.v1.api_router_v1 import api_router_v1 # Your main v1 API router
-from src.services_external.redis_client import RedisClient
+from .settings.config import settings
+from .api.v1.api_router_v1 import api_router_v1 # Your main v1 API router
+from .services_external.redis_client import RedisClient
 # from src.database.session import create_db_and_tables # Optional: for initial setup during development
 
 
