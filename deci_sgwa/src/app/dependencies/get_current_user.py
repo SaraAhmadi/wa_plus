@@ -34,6 +34,7 @@ class UserModel(BaseModel):
     username: str
     full_name: Optional[str] = None
     is_active: bool
+    is_superuser: bool = False # Added is_superuser field
     roles: List[RoleModel] = Field(default_factory=list)
 
 # --- Dependency Functions ---
@@ -106,16 +107,20 @@ async def get_current_active_user(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
     return current_user
 
-# Example of how you might want to expose a "get current superuser" or "user with permission"
-# async def get_current_superuser(current_user: UserModel = Depends(get_current_active_user)) -> UserModel:
-#     is_superuser = any(role.name.lower() == 'superuser' for role in current_user.roles)
-#     if not is_superuser:
-#         raise HTTPException(
-#             status_code=status.HTTP_403_FORBIDDEN,
-#             detail="The user does not have superuser privileges"
-#         )
-#     return current_user
 
+async def get_current_active_superuser(current_user: UserModel = Depends(get_current_active_user)) -> UserModel:
+    """
+    Dependency to get the current active user and verify they are a superuser.
+    Relies on `get_current_active_user` to fetch and activate the user.
+    """
+    if not getattr(current_user, 'is_superuser', False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The user does not have superuser privileges"
+        )
+    return current_user
+
+# Example of how you might want to expose a "user with permission"
 # async def require_permission(permission_codename: str):
 #     """
 #     Factory for a dependency that checks if the current user has a specific permission.
@@ -151,18 +156,26 @@ if __name__ == "__main__":
         headers = kwargs.get("headers", {})
         token = headers.get("Authorization", "").replace("Bearer ", "")
 
-        if token == "valid_active_token":
+        if token == "valid_active_token": # Non-superuser
             return MockResponse({
                 "id": 1, "email": "active@example.com", "username": "activeuser",
-                "full_name": "Active User", "is_active": True,
+                "full_name": "Active User", "is_active": True, "is_superuser": False,
                 "roles": [{"id": 1, "name": "user", "description": "Regular user",
                            "permissions": [{"id":1, "name": "read", "description": "Read access"}]
                           }]
             }, 200)
-        elif token == "valid_inactive_token":
+        elif token == "valid_superuser_token": # Superuser
+            return MockResponse({
+                "id": 3, "email": "superuser@example.com", "username": "superadmin",
+                "full_name": "Super Admin", "is_active": True, "is_superuser": True,
+                "roles": [{"id": 2, "name": "admin", "description": "Admin role",
+                           "permissions": [{"id":1, "name": "read", "description": "Read access"}, {"id":2, "name": "write", "description": "Write access"}]
+                          }]
+            }, 200)
+        elif token == "valid_inactive_token": # Inactive non-superuser
             return MockResponse({
                 "id": 2, "email": "inactive@example.com", "username": "inactiveuser",
-                "full_name": "Inactive User", "is_active": False,
+                "full_name": "Inactive User", "is_active": False, "is_superuser": False,
                 "roles": [{"id": 1, "name": "user", "description": "Regular user",
                            "permissions": [{"id":1, "name": "read", "description": "Read access"}]
                           }]
@@ -218,13 +231,12 @@ if __name__ == "__main__":
         # Active user
         with patch("httpx.AsyncClient.get", mock_client_get):
             try:
-                # Simulate Depends by calling directly for test
                 user_obj = await get_current_user_from_core(token="valid_active_token")
                 active_user = await get_current_active_user(current_user=user_obj)
                 print(f"Active user passed through: {active_user.username}")
                 assert active_user.is_active
             except HTTPException as e:
-                print(f"Error getting active user: {e.detail} (status: {e.status_code})")
+                print(f"Error getting active user for active user test: {e.detail} (status: {e.status_code})")
 
         # Inactive user
         with patch("httpx.AsyncClient.get", mock_client_get):
@@ -232,8 +244,42 @@ if __name__ == "__main__":
                 user_obj_inactive = await get_current_user_from_core(token="valid_inactive_token")
                 await get_current_active_user(current_user=user_obj_inactive)
             except HTTPException as e:
-                print(f"Correctly handled inactive user: {e.detail} (status: {e.status_code})")
+                print(f"Correctly handled inactive user for active user test: {e.detail} (status: {e.status_code})")
                 assert e.status_code == 400
+
+        # --- Test get_current_active_superuser ---
+        print("\n--- Testing get_current_active_superuser ---")
+        # Superuser
+        with patch("httpx.AsyncClient.get", mock_client_get):
+            try:
+                user_obj_super = await get_current_user_from_core(token="valid_superuser_token")
+                active_super_user = await get_current_active_user(current_user=user_obj_super) # First ensure active
+                super_user = await get_current_active_superuser(current_user=active_super_user)
+                print(f"Superuser passed through: {super_user.username}")
+                assert super_user.is_superuser
+            except HTTPException as e:
+                print(f"Error getting superuser for superuser test: {e.detail} (status: {e.status_code})")
+
+        # Non-superuser
+        with patch("httpx.AsyncClient.get", mock_client_get):
+            try:
+                user_obj_active = await get_current_user_from_core(token="valid_active_token")
+                active_user_non_super = await get_current_active_user(current_user=user_obj_active)
+                await get_current_active_superuser(current_user=active_user_non_super)
+            except HTTPException as e:
+                print(f"Correctly handled non-superuser for superuser test: {e.detail} (status: {e.status_code})")
+                assert e.status_code == 403
+
+        # Inactive superuser (should be caught by get_current_active_user first)
+        # For this, we need a mock that returns an inactive superuser
+        # Let's assume 'valid_inactive_token' is now an inactive superuser for this test case
+        # by modifying mock_client_get slightly or adding a new token type.
+        # For simplicity, we'll rely on the active check in get_current_active_superuser's dependency.
+        # If an inactive user (superuser or not) is passed to get_current_active_superuser,
+        # it assumes get_current_active_user already filtered it.
+        # If we were to call get_current_active_superuser with a user from get_current_user_from_core that
+        # happens to be inactive but also a superuser, the active check in get_current_active_user (the dependency)
+        # would raise the 400 error first.
 
     if __name__ == "__main__":
         asyncio.run(main())
