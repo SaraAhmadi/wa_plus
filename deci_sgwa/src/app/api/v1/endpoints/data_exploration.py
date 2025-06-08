@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Body, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 
-from app.dependencies import get_db, get_current_user # For authenticated routes
+from app.dependencies import get_db, get_current_active_user, UserModel # For authenticated routes
 from app.services.data_service import DataService
 from app.schemas.reporting_unit import ReportingUnit as ReportingUnitSchema, ReportingUnitType as ReportingUnitTypeSchema, ReportingUnitSimple
 from app.schemas.indicator_definition import IndicatorDefinition as IndicatorDefinitionSchema
@@ -21,7 +21,7 @@ router = APIRouter()
 @router.get("/geographic-units", response_model=List[ReportingUnitSchema])
 async def get_geographic_units(
     db: AsyncSession = Depends(get_db),
-    # current_user: Any = Depends(get_current_user), # Uncomment if this route needs auth
+    # current_user: UserModel = Depends(get_current_active_user), # Uncomment if this route needs auth
     unit_type_id: Optional[int] = Query(None, description="Filter by reporting unit type ID"),
     parent_unit_id: Optional[int] = Query(None, description="Filter by parent unit ID to get children"),
     search: Optional[str] = Query(None, description="Search term for unit name"),
@@ -47,7 +47,7 @@ async def get_geographic_units(
 async def get_geographic_unit_by_id(
     unit_id: int,
     db: AsyncSession = Depends(get_db),
-    # current_user: Any = Depends(get_current_user), # Uncomment if auth needed
+    # current_user: UserModel = Depends(get_current_active_user), # Uncomment if auth needed
 ):
     """
     Retrieve a specific geographic/reporting unit by its ID.
@@ -62,7 +62,7 @@ async def get_geographic_unit_by_id(
 @router.get("/geographic-unit-types", response_model=List[ReportingUnitTypeSchema])
 async def get_geographic_unit_types(
     db: AsyncSession = Depends(get_db),
-    # current_user: Any = Depends(get_current_user), # Uncomment if auth needed
+    # current_user: UserModel = Depends(get_current_active_user), # Uncomment if auth needed
 ):
     """
     Retrieve a list of available geographic/reporting unit types.
@@ -76,7 +76,7 @@ async def get_geographic_unit_types(
 @router.get("/indicators", response_model=List[IndicatorDefinitionSchema])
 async def get_indicators(
     db: AsyncSession = Depends(get_db),
-    # current_user: Any = Depends(get_current_user), # Uncomment if auth needed
+    # current_user: UserModel = Depends(get_current_active_user), # Uncomment if auth needed
     category_id: Optional[int] = Query(None, description="Filter by indicator category ID"),
     data_type: Optional[str] = Query(None, description="Filter by data type (e.g., 'time-series', 'spatial_raster')"),
     offset: int = Query(0, description="Number of records to offset for pagination", ge=0),
@@ -100,7 +100,7 @@ async def get_indicators(
 async def get_indicator_by_code(
     indicator_code: str,
     db: AsyncSession = Depends(get_db),
-    # current_user: Any = Depends(get_current_user), # Uncomment if auth needed
+    # current_user: UserModel = Depends(get_current_active_user), # Uncomment if auth needed
 ):
     """
     Retrieve a specific indicator definition by its code.
@@ -115,7 +115,7 @@ async def get_indicator_by_code(
 @router.get("/indicator-categories", response_model=List[IndicatorCategorySchema])
 async def get_indicator_categories(
     db: AsyncSession = Depends(get_db),
-    # current_user: Any = Depends(get_current_user)
+    # current_user: UserModel = Depends(get_current_active_user)
 ):
     """Retrieve available indicator categories."""
     data_service = DataService(db)
@@ -125,7 +125,7 @@ async def get_indicator_categories(
 @router.get("/units-of-measurement", response_model=List[UnitOfMeasurementSchema])
 async def get_units_of_measurement(
     db: AsyncSession = Depends(get_db),
-    # current_user: Any = Depends(get_current_user)
+    # current_user: UserModel = Depends(get_current_active_user)
 ):
     """Retrieve available units of measurement."""
     data_service = DataService(db)
@@ -136,7 +136,7 @@ async def get_units_of_measurement(
 @router.get("/timeseries-data", response_model=List[Dict[str, Any]]) # Using Dict for flexibility from service
 async def get_timeseries_data_points(
     db: AsyncSession = Depends(get_db),
-    # current_user: Any = Depends(get_current_user), # Typically timeseries data requires auth
+    # current_user: UserModel = Depends(get_current_active_user), # Typically timeseries data requires auth
     indicator_codes: List[str] = Query(..., description="Comma-separated list of indicator codes"), # '...' means required
     start_date: datetime = Query(..., description="Start date for the time series (ISO format)"),
     end_date: datetime = Query(..., description="End date for the time series (ISO format)"),
@@ -174,7 +174,7 @@ async def get_timeseries_data_points(
 @router.get("/summary-data", response_model=List[Dict[str, Any]])
 async def get_summary_statistics(
     db: AsyncSession = Depends(get_db),
-    # current_user: Any = Depends(get_current_user), # Likely requires auth
+    # current_user: UserModel = Depends(get_current_active_user), # Likely requires auth
     indicator_codes: List[str] = Query(..., description="List of indicator codes"),
     time_period_start: datetime = Query(..., description="Start of the period for summary"),
     time_period_end: datetime = Query(..., description="End of the period for summary"),
@@ -212,7 +212,7 @@ async def get_cropping_pattern_data(
     time_period_season: Optional[str] = Query(None, description="Specific season (e.g., 'Kharif', 'Rabi')"),
     pattern_type: Optional[str] = Query(None, description="Type of pattern ('Actual', 'Planned')"),
     db: AsyncSession = Depends(get_db),
-    # current_user: Any = Depends(get_current_user), # Likely requires auth
+    # current_user: UserModel = Depends(get_current_active_user), # Likely requires auth
 ):
     """
     Retrieve data on actual or planned cropping patterns.
@@ -241,7 +241,7 @@ async def get_financial_overview(
     infrastructure_id: Optional[int] = Query(None, description="Filter by infrastructure ID"),
     group_by_account_type: bool = Query(False, description="Group results by specific account types"),
     db: AsyncSession = Depends(get_db),
-    current_user: Any = Depends(get_current_user), # Financial data almost always requires auth
+    current_user: UserModel = Depends(get_current_active_user), # Financial data almost always requires auth
 ):
     """
     Retrieve a financial summary (costs, revenues).

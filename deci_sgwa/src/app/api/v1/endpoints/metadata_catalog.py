@@ -2,7 +2,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_db, get_current_user # Assuming metadata might be protected
+from app.dependencies import get_db, get_current_active_user, UserModel # Assuming metadata might be protected
 from app.services.data_service import DataService
 from app.schemas.reporting_unit import ReportingUnit as ReportingUnitSchema, ReportingUnitType as ReportingUnitTypeSchema
 from app.schemas.indicator_definition import IndicatorDefinition as IndicatorDefinitionSchema
@@ -10,7 +10,7 @@ from app.schemas.indicator_category import IndicatorCategory as IndicatorCategor
 from app.schemas.unit_of_measurement import UnitOfMeasurement as UnitOfMeasurementSchema
 from app.schemas.temporal_resolution import TemporalResolution as TemporalResolutionSchema # Assuming you created this schema
 from app.schemas.data_quality_flag import DataQualityFlag as DataQualityFlagSchema # Assuming you created this schema
-from app.schemas.user import User as UserSchema # For current_user type hint
+# from app.schemas.user import User as UserSchema # Replaced by UserModel
 from app.schemas.infrastructure_type import InfrastructureType as InfrastructureTypeSchema
 from app.schemas.crop import Crop as CropSchema # For listing crop types
 
@@ -22,7 +22,7 @@ router = APIRouter()
 @router.get("/geographic-units", response_model=List[ReportingUnitSchema])
 async def get_geographic_units_catalog(
     db: AsyncSession = Depends(get_db),
-    # current_user: UserSchema = Depends(get_current_user), # Auth if needed
+    # current_user: UserModel = Depends(get_current_active_user), # Auth if needed
     unit_type_id: Optional[int] = Query(None, description="Filter by reporting unit type ID"),
     parent_unit_id: Optional[int] = Query(None, description="Filter by parent unit ID to get children"),
     search: Optional[str] = Query(None, description="Search term for unit name"),
@@ -48,7 +48,7 @@ async def get_geographic_units_catalog(
 async def get_geographic_unit_by_id_catalog(
     unit_id: int,
     db: AsyncSession = Depends(get_db),
-    # current_user: UserSchema = Depends(get_current_user), # Auth if needed
+    # current_user: UserModel = Depends(get_current_active_user), # Auth if needed
 ):
     """
     Retrieve a specific geographic/reporting unit by its ID.
@@ -63,7 +63,7 @@ async def get_geographic_unit_by_id_catalog(
 @router.get("/geographic-unit-types", response_model=List[ReportingUnitTypeSchema])
 async def get_geographic_unit_types_catalog(
     db: AsyncSession = Depends(get_db),
-    # current_user: UserSchema = Depends(get_current_user), # Auth if needed
+    # current_user: UserModel = Depends(get_current_active_user), # Auth if needed
 ):
     """
     Retrieve a list of available geographic/reporting unit types.
@@ -77,7 +77,7 @@ async def get_geographic_unit_types_catalog(
 @router.get("/indicators", response_model=List[IndicatorDefinitionSchema])
 async def get_indicators_catalog(
     db: AsyncSession = Depends(get_db),
-    # current_user: UserSchema = Depends(get_current_user), # Auth if needed
+    # current_user: UserModel = Depends(get_current_active_user), # Auth if needed
     category_id: Optional[int] = Query(None, description="Filter by indicator category ID"),
     data_type: Optional[str] = Query(None, description="Filter by data type (e.g., 'time-series', 'spatial_raster')"),
     offset: int = Query(0, description="Number of records to offset for pagination", ge=0),
@@ -101,7 +101,7 @@ async def get_indicators_catalog(
 async def get_indicator_by_code_catalog(
     indicator_code: str,
     db: AsyncSession = Depends(get_db),
-    # current_user: UserSchema = Depends(get_current_user), # Auth if needed
+    # current_user: UserModel = Depends(get_current_active_user), # Auth if needed
 ):
     """
     Retrieve a specific indicator definition by its code.
@@ -116,7 +116,7 @@ async def get_indicator_by_code_catalog(
 @router.get("/indicator-categories", response_model=List[IndicatorCategorySchema])
 async def get_indicator_categories_catalog(
     db: AsyncSession = Depends(get_db),
-    # current_user: UserSchema = Depends(get_current_user)
+    # current_user: UserModel = Depends(get_current_active_user)
 ):
     """Retrieve available indicator categories."""
     data_service = DataService(db)
@@ -126,7 +126,7 @@ async def get_indicator_categories_catalog(
 @router.get("/units-of-measurement", response_model=List[UnitOfMeasurementSchema])
 async def get_units_of_measurement_catalog(
     db: AsyncSession = Depends(get_db),
-    # current_user: UserSchema = Depends(get_current_user)
+    # current_user: UserModel = Depends(get_current_active_user)
 ):
     """Retrieve available units of measurement."""
     data_service = DataService(db)
@@ -136,7 +136,7 @@ async def get_units_of_measurement_catalog(
 @router.get("/temporal-resolutions", response_model=List[TemporalResolutionSchema])
 async def get_temporal_resolutions_catalog(
     db: AsyncSession = Depends(get_db),
-    # current_user: UserSchema = Depends(get_current_user)
+    # current_user: UserModel = Depends(get_current_active_user)
 ):
     """Retrieve available temporal resolutions."""
     # Assuming a get_temporal_resolutions method in DataService
@@ -148,7 +148,7 @@ async def get_temporal_resolutions_catalog(
 @router.get("/data-quality-flags", response_model=List[DataQualityFlagSchema])
 async def get_data_quality_flags_catalog(
     db: AsyncSession = Depends(get_db),
-    # current_user: UserSchema = Depends(get_current_user)
+    # current_user: UserModel = Depends(get_current_active_user)
 ):
     """Retrieve available data quality flags."""
     # Assuming a get_data_quality_flags method in DataService
@@ -161,7 +161,7 @@ async def get_data_quality_flags_catalog(
 @router.get("/infrastructure-types", response_model=List[InfrastructureTypeSchema])
 async def get_infrastructure_types_catalog(
     db: AsyncSession = Depends(get_db),
-    # current_user: UserSchema = Depends(get_current_user)
+    # current_user: UserModel = Depends(get_current_active_user)
 ):
     """Retrieve available infrastructure types."""
     data_service = DataService(db)
@@ -171,7 +171,7 @@ async def get_infrastructure_types_catalog(
 @router.get("/crops", response_model=List[CropSchema]) # Assuming CropSchema has basic fields
 async def get_crops_catalog(
     db: AsyncSession = Depends(get_db),
-    # current_user: UserSchema = Depends(get_current_user),
+    # current_user: UserModel = Depends(get_current_active_user),
     offset: int = Query(0, description="Number of records to offset for pagination", ge=0),
     limit: int = Query(100, ge=1, le=200)
 ):

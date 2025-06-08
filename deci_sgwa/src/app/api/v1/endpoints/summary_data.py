@@ -3,9 +3,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 
-from app.dependencies import get_db, get_current_user
+from app.dependencies import get_db, get_current_active_user, UserModel
 from app.services.data_service import DataService
-from app.schemas.user import User as UserSchema
+# from app.schemas.user import User as UserSchema # Replaced by UserModel
 # Define a Pydantic schema for summary data if its structure is stable
 # from app.schemas.summary import SummaryDataPoint
 
@@ -15,7 +15,7 @@ router = APIRouter()
 @router.get("/", response_model=List[Dict[str, Any]]) # Using Dict as DataService returns this
 async def get_summary_statistics(
     db: AsyncSession = Depends(get_db),
-    current_user: UserSchema = Depends(get_current_user), # Summary data often requires auth
+    current_user: UserModel = Depends(get_current_active_user), # Summary data often requires auth
     indicator_codes: List[str] = Query(..., description="List of indicator codes"),
     time_period_start: datetime = Query(..., description="Start of the period for summary"),
     time_period_end: datetime = Query(..., description="End of the period for summary"),

@@ -1,137 +1,239 @@
-from typing import Optional
+import os
+from typing import List, Optional
+
+import httpx
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
-from jose import JWTError # Already imported in token_utils but good to have context
+from pydantic import BaseModel, Field, EmailStr
 
-from app.core.config import settings
-from app.database.models.role import Role # For type hinting and relationship path
-from app.schemas.token import TokenData
-from app.database.models.user import User # Your SQLAlchemy User model
-# We'll need a service to fetch the user from the DB by email/ID
-# For now, let's assume a placeholder or direct query, will be refined with services
-# from app.services.user_service import UserService # Ideal
-from app.security.token_utils import decode_access_token
-from .get_db_session import get_db # Using the re-exported version
+# --- Configuration ---
+CORE_API_BASE_URL = os.getenv("CORE_API_URL", "http://core_django:8000").rstrip("/")
+USERS_ME_ENDPOINT = f"{CORE_API_BASE_URL}/api/v1/users/me/"
 
-# This defines the scheme for how the token is expected in the request (Authorization: Bearer <token>)
-# tokenUrl should point to your login endpoint where tokens are issued.
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/token")
+# OAuth2PasswordBearer uses the tokenUrl for documentation and OpenAPI schema.
+# The actual token generation is handled by deci_core. This path can be a placeholder.
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token") # Example relative path
 
+# --- Pydantic Models ---
+# These models should ideally match the UserSerializer structure from deci_core.
 
-async def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: AsyncSession = Depends(get_db)
-) -> User:
+class PermissionModel(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+
+class RoleModel(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    permissions: List[PermissionModel] = Field(default_factory=list)
+
+class UserModel(BaseModel):
+    id: int
+    email: EmailStr
+    username: str
+    full_name: Optional[str] = None
+    is_active: bool
+    roles: List[RoleModel] = Field(default_factory=list)
+
+# --- Dependency Functions ---
+
+async def get_current_user_from_core(token: str = Depends(oauth2_scheme)) -> UserModel:
     """
-    Dependency to get the current authenticated user.
-    Decodes the JWT token, retrieves the user from the database.
-    Raises HTTPException if authentication fails.
+    Dependency to get the current user by validating the token against the deci_core API.
     """
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
-    token_data: Optional[TokenData] = decode_access_token(token)
-
-    if token_data is None or token_data.email is None:
-        # This case covers expired tokens or tokens without a subject (email)
-        raise credentials_exception
-
-    # In a real application, you'd use a service layer here.
-    # user_service = UserService(db)
-    # user = await user_service.get_user_by_email(email=token_data.email)
-
-    # Placeholder for direct DB query until user_service is implemented:
-    from sqlalchemy import select # Local import for this placeholder
-    # Ensure User.roles and Role.permissions are eager loaded
-    user_query = (
-        select(User)
-        .options(
-            selectinload(User.roles).selectinload(Role.permissions)
-        )
-        .where(User.email == token_data.email)
-    )
-    result = await db.execute(user_query)
-    user: Optional[User] = result.scalars().unique().first() # .unique() is good practice with selectinload
-    # End placeholder
-
-    if user is None:
-        raise credentials_exception
-    if not user.is_active:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
-    return user
-
-
-async def get_current_active_superuser(
-    current_user: User = Depends(get_current_user)
-) -> User:
-    """
-    Dependency to get the current authenticated user, ensuring they are a superuser.
-    """
-    if not current_user.is_superuser:
+    if not token: # Should be caught by OAuth2PasswordBearer, but as an extra check.
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="The user doesn't have enough privileges"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
         )
+
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                USERS_ME_ENDPOINT,
+                headers={"Authorization": f"Bearer {token}"}
+            )
+        except httpx.RequestError as exc:
+            # Network errors, DNS failures, etc.
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"Service unavailable: Could not connect to authentication service. {exc}",
+            )
+
+        if response.status_code == status.HTTP_200_OK:
+            try:
+                user_data = response.json()
+                return UserModel(**user_data)
+            except Exception as e: # Includes JSONDecodeError and Pydantic ValidationError
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Error parsing user data from authentication service: {e}",
+                )
+        elif response.status_code == status.HTTP_401_UNAUTHORIZED:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials: Token is invalid or expired.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        elif response.status_code == status.HTTP_403_FORBIDDEN:
+            # This might indicate a valid token but insufficient permissions for /users/me/,
+            # but for a /users/me/ endpoint, it usually implies an issue treated as unauthorized.
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, # Or map to 401 as per security policy
+                detail="Not authorized to access this resource.",
+                headers={"WWW-Authenticate": "Bearer"}, # Consider if Bearer is appropriate for 403
+            )
+        else:
+            # Handle other unexpected status codes from the auth service
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=(
+                    f"Authentication service returned an unexpected status: {response.status_code}. "
+                    f"Response: {response.text[:200]}" # Limit response text in error
+                ),
+            )
+
+async def get_current_active_user(
+    current_user: UserModel = Depends(get_current_user_from_core)
+) -> UserModel:
+    """
+    Dependency to get the current active user.
+    Relies on `get_current_user_from_core` to fetch the user first.
+    """
+    if not current_user.is_active:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
     return current_user
 
+# Example of how you might want to expose a "get current superuser" or "user with permission"
+# async def get_current_superuser(current_user: UserModel = Depends(get_current_active_user)) -> UserModel:
+#     is_superuser = any(role.name.lower() == 'superuser' for role in current_user.roles)
+#     if not is_superuser:
+#         raise HTTPException(
+#             status_code=status.HTTP_403_FORBIDDEN,
+#             detail="The user does not have superuser privileges"
+#         )
+#     return current_user
 
-# Optional: Dependency to get a user that might or might not be authenticated
-# Useful for routes that behave differently for anonymous vs logged-in users
-async def get_optional_current_user(
-    token: Optional[str] = Depends(oauth2_scheme) if settings.API_V1_STR else None, # HACK: tokenUrl is required
-    db: AsyncSession = Depends(get_db)
-) -> Optional[User]:
-    """
-    Dependency to get an optional current user.
-    If no token is provided or token is invalid, returns None.
-    Otherwise, returns the user.
-    """
-    if not token:
-        return None
-    try:
-        token_data: Optional[TokenData] = decode_access_token(token)
-        if token_data is None or token_data.email is None:
-            return None
+# async def require_permission(permission_codename: str):
+#     """
+#     Factory for a dependency that checks if the current user has a specific permission.
+#     """
+#     async def _has_permission(current_user: UserModel = Depends(get_current_active_user)) -> UserModel:
+#         for role in current_user.roles:
+#             for perm in role.permissions:
+#                 if perm.name == permission_codename: # Assuming 'name' is the codename
+#                     return current_user
+#         raise HTTPException(
+#             status_code=status.HTTP_403_FORBIDDEN,
+#             detail=f"User does not have the required permission: {permission_codename}"
+#         )
+#     return _has_permission
 
-        # Placeholder for direct DB query (replace with service)
-        from sqlalchemy import select
-        # For optional user, eager loading might also be beneficial if the user object is used
-        # in a way that would trigger lazy loads.
-        user_query = (
-            select(User)
-            .options(
-                selectinload(User.roles).selectinload(Role.permissions)
-            )
-            .where(User.email == token_data.email)
-        )
-        result = await db.execute(user_query)
-        user: Optional[User] = result.scalars().unique().first()
-        # End placeholder
+# For testing this dependency directly (optional)
+if __name__ == "__main__":
+    # This part is for local testing and won't run when imported by FastAPI normally.
+    # You would need to mock httpx.AsyncClient and provide a dummy token.
+    import asyncio
+    from unittest.mock import patch # Ensure patch is imported for the __main__ block
 
-        if user and user.is_active:
-            return user
-        return None
-    except HTTPException: # e.g., if token is present but truly invalid and raises 401
-        return None
-    except Exception: # Catch any other unexpected error during optional user fetch
-        return None
+    async def mock_client_get(*args, **kwargs):
+        class MockResponse:
+            def __init__(self, json_data, status_code):
+                self.json_data = json_data
+                self.status_code = status_code
+                self.text = str(json_data)
 
-# Note: The hack for `oauth2_scheme` in `get_optional_current_user` is because
-# `OAuth2PasswordBearer` requires `tokenUrl`. If you make it truly optional,
-# you might need to manually extract the token from the `Authorization` header
-# if `Depends(oauth2_scheme)` fails due to missing token.
-# A more robust way for optional auth is to handle the header directly:
-# from fastapi import Request
-# async def get_optional_current_user_robust(request: Request, db: AsyncSession = Depends(get_db)):
-#     auth_header = request.headers.get("Authorization")
-#     if auth_header:
-#         parts = auth_header.split()
-#         if len(parts) == 2 and parts[0].lower() == "bearer":
-#             token = parts[1]
-#             # ... rest of the logic from get_optional_current_user ...
-#     return None
+            def json(self):
+                return self.json_data
+
+        headers = kwargs.get("headers", {})
+        token = headers.get("Authorization", "").replace("Bearer ", "")
+
+        if token == "valid_active_token":
+            return MockResponse({
+                "id": 1, "email": "active@example.com", "username": "activeuser",
+                "full_name": "Active User", "is_active": True,
+                "roles": [{"id": 1, "name": "user", "description": "Regular user",
+                           "permissions": [{"id":1, "name": "read", "description": "Read access"}]
+                          }]
+            }, 200)
+        elif token == "valid_inactive_token":
+            return MockResponse({
+                "id": 2, "email": "inactive@example.com", "username": "inactiveuser",
+                "full_name": "Inactive User", "is_active": False,
+                "roles": [{"id": 1, "name": "user", "description": "Regular user",
+                           "permissions": [{"id":1, "name": "read", "description": "Read access"}]
+                          }]
+            }, 200)
+        elif token == "invalid_token":
+            return MockResponse({"detail": "Invalid token"}, 401)
+        elif token == "service_unavailable_token":
+            raise httpx.ConnectError("Connection refused")
+        else:
+            return MockResponse({"detail": "Unknown test token"}, 500)
+
+    async def main():
+        # --- Test get_current_user_from_core ---
+        print("--- Testing get_current_user_from_core ---")
+        # Valid active user
+        with patch("httpx.AsyncClient.get", mock_client_get):
+            try:
+                user = await get_current_user_from_core(token="valid_active_token")
+                print(f"Active user fetched: {user.username}, is_active: {user.is_active}")
+                assert user.is_active
+                assert user.roles[0].permissions[0].name == "read"
+            except HTTPException as e:
+                print(f"Error fetching active user: {e.detail} (status: {e.status_code})")
+
+        # Valid inactive user
+        with patch("httpx.AsyncClient.get", mock_client_get):
+            try:
+                user_in = await get_current_user_from_core(token="valid_inactive_token")
+                print(f"Inactive user fetched: {user_in.username}, is_active: {user_in.is_active}")
+                assert not user_in.is_active
+            except HTTPException as e:
+                print(f"Error fetching inactive user: {e.detail} (status: {e.status_code})")
+
+        # Invalid token
+        with patch("httpx.AsyncClient.get", mock_client_get):
+            try:
+                await get_current_user_from_core(token="invalid_token")
+            except HTTPException as e:
+                print(f"Correctly handled invalid token: {e.detail} (status: {e.status_code})")
+                assert e.status_code == 401
+
+        # Service unavailable
+        with patch("httpx.AsyncClient.get", mock_client_get):
+            try:
+                await get_current_user_from_core(token="service_unavailable_token")
+            except HTTPException as e:
+                print(f"Correctly handled service unavailable: {e.detail} (status: {e.status_code})")
+                assert e.status_code == 503
+
+
+        # --- Test get_current_active_user ---
+        print("\n--- Testing get_current_active_user ---")
+        # Active user
+        with patch("httpx.AsyncClient.get", mock_client_get):
+            try:
+                # Simulate Depends by calling directly for test
+                user_obj = await get_current_user_from_core(token="valid_active_token")
+                active_user = await get_current_active_user(current_user=user_obj)
+                print(f"Active user passed through: {active_user.username}")
+                assert active_user.is_active
+            except HTTPException as e:
+                print(f"Error getting active user: {e.detail} (status: {e.status_code})")
+
+        # Inactive user
+        with patch("httpx.AsyncClient.get", mock_client_get):
+            try:
+                user_obj_inactive = await get_current_user_from_core(token="valid_inactive_token")
+                await get_current_active_user(current_user=user_obj_inactive)
+            except HTTPException as e:
+                print(f"Correctly handled inactive user: {e.detail} (status: {e.status_code})")
+                assert e.status_code == 400
+
+    if __name__ == "__main__":
+        asyncio.run(main())

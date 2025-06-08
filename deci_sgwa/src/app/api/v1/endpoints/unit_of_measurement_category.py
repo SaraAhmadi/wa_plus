@@ -2,18 +2,18 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_db, get_current_user # Standard dependencies
+from app.dependencies import get_db, get_current_active_user, UserModel # Standard dependencies
 from app.schemas.unit_of_measurement_category import (
     UnitOfMeasurementCategory as UnitOfMeasurementCategorySchema, # Read Schema
     UnitOfMeasurementCategoryCreate as UnitOfMeasurementCategoryCreateSchema
 )
 from app.services import unit_of_measurement_category_service as uom_category_service
-from app.schemas.user import User as UserSchema # For current_user type hint
+# from app.schemas.user import User as UserSchema # Replaced by UserModel
 
 router = APIRouter(
     prefix="/categories",
     tags=["Unit of Measurement Categories"],
-    # dependencies=[Depends(get_current_user)] # Uncomment if all routes need auth
+    # dependencies=[Depends(get_current_active_user)] # Uncomment if all routes need auth
 )
 
 
@@ -21,12 +21,12 @@ router = APIRouter(
     "/",
     response_model=UnitOfMeasurementCategorySchema,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_user)] # Example: require auth for creation
+    dependencies=[Depends(get_current_active_user)] # Example: require auth for creation
 )
 async def create_unit_of_measurement_category(
     category_in: UnitOfMeasurementCategoryCreateSchema,
     db: AsyncSession = Depends(get_db),
-    # current_user: UserSchema = Depends(get_current_user) # Already in dependencies
+    # current_user: UserModel = Depends(get_current_active_user) # Already in dependencies list for the route
 ):
     """
     Create a new unit of measurement category.
@@ -52,7 +52,7 @@ async def read_unit_of_measurement_categories(
     db: AsyncSession = Depends(get_db),
     offset: int = Query(0, description="Number of records to offset for pagination", ge=0),
     limit: int = Query(100, description="Maximum number of records to return", ge=1, le=200),
-    # current_user: UserSchema = Depends(get_current_user) # Optional: Add if listing needs auth
+    # current_user: UserModel = Depends(get_current_active_user) # Optional: Add if listing needs auth
 ):
     """
     Retrieve a list of unit of measurement categories.
@@ -65,7 +65,7 @@ async def read_unit_of_measurement_categories(
 async def read_unit_of_measurement_category(
     category_id: int,
     db: AsyncSession = Depends(get_db),
-    # current_user: UserSchema = Depends(get_current_user) # Optional: Add if detail view needs auth
+    # current_user: UserModel = Depends(get_current_active_user) # Optional: Add if detail view needs auth
 ):
     """
     Retrieve a specific unit of measurement category by its ID.

@@ -2,10 +2,10 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_db, get_current_user  # Assuming map layer info might be protected
+from app.dependencies import get_db, get_current_active_user, UserModel # Assuming map layer info might be protected
 from app.services.data_service import DataService
 from app.schemas.map_layer import MapLayerMetadata  # Pydantic schema for the response
-from app.schemas.user import User as UserSchema  # For current_user type hint
+# from app.schemas.user import User as UserSchema  # Replaced by UserModel
 
 router = APIRouter()
 
@@ -13,7 +13,7 @@ router = APIRouter()
 @router.get("/", response_model=List[MapLayerMetadata])
 async def get_available_map_layers(
         db: AsyncSession = Depends(get_db),
-        current_user: UserSchema = Depends(get_current_user),  # Often, knowing available layers requires auth
+        current_user: UserModel = Depends(get_current_active_user),  # Often, knowing available layers requires auth
         reporting_unit_id: Optional[int] = Query(None,
                                                  description="Filter layers relevant to a specific geographic reporting unit ID (future use, complex to implement for rasters)"),
         indicator_code: Optional[str] = Query(None, description="Filter layers representing a specific indicator code"),
@@ -59,7 +59,7 @@ async def get_available_map_layers(
 # async def get_map_layer_detail(
 #     layer_id: str, # This would be e.g., the geoserver_layer_name
 #     db: AsyncSession = Depends(get_db),
-#     current_user: UserSchema = Depends(get_current_user)
+#     current_user: UserModel = Depends(get_current_active_user)
 # ):
 #     """
 #     Get detailed metadata for a single specific map layer.

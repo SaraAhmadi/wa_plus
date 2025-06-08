@@ -1,51 +1,46 @@
 from typing import List, Set
 from fastapi import Depends, HTTPException, status
 
-from app.database.models.user import User
-from app.database.models.role import Role
-from app.database.models.permission import Permission
-from .get_current_user import get_current_user
+# Import new Pydantic models and the updated user dependency
+from .get_current_user import (
+    get_current_active_user,
+    UserModel,
+    RoleModel as PydanticRoleModel, # Alias to avoid confusion if SQLAlchemy models are used elsewhere
+    PermissionModel as PydanticPermissionModel
+)
+# SQLAlchemy models are no longer directly used by this RBAC logic with the new UserModel
+# from app.database.models.user import User
+# from app.database.models.role import Role
+# from app.database.models.permission import Permission
 
 
-# A simple data class to bundle user, roles, and permissions, making it easier to pass around or use in
-# route logic if needed beyond just the permission check
+# A simple data class to bundle user, roles, and permissions
 class RBACResults:
     """Holds results of RBAC checks for easier access in dependencies/routes."""
-    def __init__(self, user: User, roles: List[Role], permissions: Set[str]):
+    # user type hint updated to new Pydantic UserModel
+    # roles type hint updated to new Pydantic RoleModel
+    def __init__(self, user: UserModel, roles: List[PydanticRoleModel], permissions: Set[str]):
         self.user = user
         self.roles = roles
         self.permissions = permissions
 
 
-async def get_rbac_results(current_user: User = Depends(get_current_user)) -> RBACResults:
+async def get_rbac_results(current_user: UserModel = Depends(get_current_active_user)) -> RBACResults:
     """
-    Gathers all roles and permissions for the current user.
-    This assumes that user.roles are eagerly loaded or can be awaited if loaded lazily.
-    If roles/permissions are lazily loaded and you are in an async context,
-    you might need to explicitly await them if your ORM setup requires it.
-    With SQLAlchemy's async sessions and relationships, they should often be
-    accessible, but fetching them explicitly might be needed if not preloaded.
-
-    Note: Accessing `current_user.roles` and `role.permissions` directly works if
-    they are configured for eager loading (e.g., with `selectinload` in the query
-    that loads the user in `get_current_user`) or if your async session setup
-    handles transparent await for lazy loads (less common for complex structures).
-
-    For simplicity here, we assume direct access works.
-    A more robust way might involve a service call: `await user_service.get_user_permissions(user_id)`
+    Gathers all roles and permissions for the current user using the Pydantic UserModel.
+    The UserModel from get_current_active_user is expected to have roles and permissions populated.
     """
-    user_roles = current_user.roles # This should be a list of Role objects
+    # current_user is now a Pydantic UserModel
+    # current_user.roles is List[PydanticRoleModel]
+    # role.permissions is List[PydanticPermissionModel]
+
+    user_roles: List[PydanticRoleModel] = current_user.roles
     user_permissions_set: Set[str] = set()
 
     for role in user_roles:
-        # role.permissions should be a list of Permission objects
-        # Ensure permissions are loaded. If lazy, this might require an await
-        # or specific loading strategy in the ORM query for user.
-        # For example, in get_current_user, the user query could be:
-        # select(User).options(selectinload(User.roles).selectinload(Role.permissions)).where(...)
-        if role.permissions: # Check if permissions list is not None
+        if role.permissions: # This is List[PydanticPermissionModel]
              for perm in role.permissions:
-                user_permissions_set.add(perm.name)
+                user_permissions_set.add(perm.name) # perm.name is str
 
     return RBACResults(user=current_user, roles=user_roles, permissions=user_permissions_set)
 

@@ -69,7 +69,7 @@ class Settings(BaseSettings):
         postgres_password = os.getenv("POSTGRES_PASSWORD", "")
         postgres_server = os.getenv("POSTGRES_SERVER", "localhost")
         postgres_db = os.getenv("POSTGRES_DB", "waplus_dashboard_db")
-        postgres_port = os.getenv("POSTGRES_PORT", "5432")
+        postgres_port = int(os.getenv("POSTGRES_PORT", "5432"))
 
         # Construct URL from environment variables
         return PostgresDsn.build(

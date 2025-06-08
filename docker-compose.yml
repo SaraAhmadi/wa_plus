@@ -67,9 +67,8 @@ services:
       - DEBUG=${DEBUG:-False}
       # FastAPI DB connection (PostGIS)
       - POSTGRES_SERVER=waplus_db
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+      # POSTGRES_USER, POSTGRES_PASSWORD, and POSTGRES_DB are now sourced from the .env file
+      # to avoid being overridden by empty shell variables.
       - POSTGRES_PORT=${WA_PLUS_POSTGRES_PORT:-5432}
       # Django URL for authentication
       - DJANGO_AUTH_URL=http://core_django:8000/api/auth/

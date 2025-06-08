@@ -3,10 +3,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 
-from app.dependencies import get_db, get_current_user
+from app.dependencies import get_db, get_current_active_user, UserModel
 from app.services.data_service import DataService
 from app.schemas.indicator_timeseries import TimeseriesDataPoint # Your schema for chart-ready data points
-from app.schemas.user import User as UserSchema
+# from app.schemas.user import User as UserSchema # Replaced by UserModel
 
 router = APIRouter()
 
@@ -14,7 +14,7 @@ router = APIRouter()
 @router.get("/", response_model=List[Dict[str, Any]]) # Using Dict as DataService returns this
 async def get_timeseries_data_points(
     db: AsyncSession = Depends(get_db),
-    current_user: UserSchema = Depends(get_current_user), # Time-series data usually requires auth
+    current_user: UserModel = Depends(get_current_active_user), # Time-series data usually requires auth
     indicator_codes: List[str] = Query(..., description="Comma-separated list of indicator codes"),
     start_date: datetime = Query(..., description="Start date for the time series (ISO format)"),
     end_date: datetime = Query(..., description="End date for the time series (ISO format)"),

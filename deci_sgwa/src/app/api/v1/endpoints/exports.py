@@ -5,10 +5,10 @@ from datetime import datetime
 from fastapi.responses import StreamingResponse
 import io
 
-from app.dependencies import get_db, get_current_user
+from app.dependencies import get_db, get_current_active_user, UserModel
 from app.services.data_service import DataService
 from app.services.export_service import ExportService
-from app.schemas.user import User as UserSchema  # For current_user type hint if needed
+# from app.schemas.user import User as UserSchema  # Replaced by UserModel from dependencies
 
 # Import any specific Pydantic schemas for request bodies if an export request becomes complex
 
@@ -34,7 +34,7 @@ async def export_data_as_csv(
         aggregation_method: Optional[str] = Query(None, description="Aggregation method for summary data"),
         # --- Dependencies ---
         db: AsyncSession = Depends(get_db),
-        current_user: UserSchema = Depends(get_current_user)  # Exports are typically authenticated
+        current_user: UserModel = Depends(get_current_active_user)  # Exports are typically authenticated
 ):
     """
     Export currently filtered/viewed tabular data as a CSV file.
@@ -124,7 +124,7 @@ async def export_data_as_csv(
 #
 # @router.post("/visualization", status_code=status.HTTP_202_ACCEPTED)  # Or 200 if returning file directly
 # async def export_current_visualization(
-#         # current_user: UserSchema = Depends(get_current_user), # Usually requires auth
+#         # current_user: UserModel = Depends(get_current_active_user), # Usually requires auth
 #         # --- Request Body (as per SSR 8.5.5 POST /api/v1/export/visualization) ---
 #         visualization_type: str = Body(..., examples=["Chart", "Map"]),
 #         format: str = Body(..., examples=["PNG", "PDF"]),
