@@ -92,12 +92,18 @@ services:
     env_file:
       - ./deci_sgwa/.env
     environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_HOST_AUTH_METHOD=scram-sha-256
+      - PGDATA=/var/lib/postgresql/data/pgdata # Explicitly setting PGDATA
     volumes:
-      - waplus_postgres_data:/var/lib/postgresql/data
-      - ./deci_sgwa/scripts/initdb:/docker-entrypoint-initdb.d
+      - postgres_data:/var/lib/postgresql/data/pgdata # Mount for PGDATA
+      - ./scripts/initdb:/docker-entrypoint-initdb.d # For initial DB setup scripts (e.g., creating extensions)
+    ports:
+      - "${POSTGRES_PORT_HOST:-5432}:5432" # Use POSTGRES_PORT_HOST from .env or default
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB -q"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -q"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -105,25 +111,119 @@ services:
       - waplus_network
 
   # ====================== SHARED SERVICES ======================
-  redis:
-    image: redis:7-alpine
-    container_name: shared_redis
+  # GeoServer
+  geoserver:
+    image: kartoza/geoserver:2.23.0 # Using a specific version
+    container_name: waplus_geoserver
     restart: unless-stopped
+    env_file:
+      - ./deci_sgwa/.env # Loads GEOSERVER_ADMIN_USER, GEOSERVER_ADMIN_PASSWORD etc.
+    environment:
+      - GEOSERVER_ADMIN_USER=${GEOSERVER_ADMIN_USER}
+      - GEOSERVER_ADMIN_PASSWORD=${GEOSERVER_ADMIN_PASSWORD}
+      - GEOSERVER_ADMIN_EMAIL=${GEOSERVER_ADMIN_EMAIL:-geoserver@example.com}
+      # GeoServer performance tuning (examples, adjust based on needs and resources)
+      - MAX_MEMORY=1G # e.g., 1G, 2G
+      - MIN_MEMORY=512M # e.g., 256M, 512M
+      # Other GeoServer specific env vars from kartoza image:
+      - GEOWEBCACHE_CACHE_DIR=/opt/geoserver/data_dir/gwc
+      - ENABLE_JSONP=true
+      - MAX_FILTER_RULES=20
+      - OPTIMIZE_LINE_WIDTH=false
+      - GEOSERVER_CSRF_WHITELIST=${APP_DOMAIN_NAME} # e.g. your.dashboard.com, if app is hosted and CSRF is enabled
+    volumes:
+      - geoserver_data:/opt/geoserver/data_dir # GeoServer's main data directory
+      # - ./data/geoserver_data_dir_override:/opt/geoserver_override/data_dir # For specific overrides
+      # - ./data/geoserver_webapp_override:/opt/geoserver_override/webapp # For webapp customizations
     ports:
-      - "6379:6379"
+      - "${GEOSERVER_PORT_HOST:-8080}:8080"
+    depends_on:
+      waplus_db: # GeoServer needs the database to be ready if it connects to PostGIS stores
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/geoserver/web/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s # Give GeoServer more time to start up initially
     networks:
       - waplus_network
 
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: shared_pgadmin
-    environment:
-      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@example.com}
-      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-adminpass}
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: waplus_redis
+    restart: unless-stopped
+    # command: redis-server --requirepass ${REDIS_PASSWORD} # Uncomment if REDIS_PASSWORD is set
+    volumes:
+      - redis_data:/data
     ports:
-      - "5050:80"
+      - "${REDIS_PORT_HOST:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s # Reduced timeout, ping is fast
+      retries: 5
     networks:
       - waplus_network
+
+  # PGAdmin (optional, for database management)
+  pgadmin:
+    image: dpage/pgadmin4:latest # Or pin a version like 7.2
+    container_name: waplus_pgadmin
+    restart: unless-stopped
+    env_file:
+      - ./deci_sgwa/.env # Loads PGADMIN_DEFAULT_EMAIL, PGADMIN_DEFAULT_PASSWORD
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
+      - PGADMIN_LISTEN_PORT=80 # pgAdmin listens on port 80 inside the container
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      # You might want to mount a servers.json file to preconfigure DB connections
+      # - ./pgadmin_servers.json:/pgadmin4/servers.json
+    ports:
+      - "${PGADMIN_PORT_HOST:-5050}:80" # Host port maps to container's port 80
+    depends_on:
+      waplus_db:
+        condition: service_healthy
+    networks:
+      - waplus_network
+
+
+#   Traefik for reverse proxy (optional, advanced setup)
+  traefik:
+     image: traefik:v2.10
+     container_name: waplus_traefik
+     command:
+       - --api.dashboard=true # Enable dashboard (be careful in prod, secure it)
+       # - --api.insecure=true # For local dev dashboard access without auth
+       - --log.level=DEBUG
+       - --providers.docker=true
+       - --providers.docker.exposedbydefault=false
+       - --entrypoints.web.address=:80
+       # - --entrypoints.websecure.address=:443 # For HTTPS
+       # - --certificatesresolvers.myresolver.acme.tlschallenge=true # For Let's Encrypt
+       # - --certificatesresolvers.myresolver.acme.email=your-email@example.com
+       # - --certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json
+     ports:
+       - "80:80"   # HTTP
+       - "443:443" # HTTPS (if configured)
+       - "8081:8080" # Traefik dashboard (internal port 8080)
+     volumes:
+       - /var/run/docker.sock:/var/run/docker.sock:ro # Allow Traefik to listen to Docker events
+       # - ./letsencrypt:/letsencrypt # Volume for Let's Encrypt certificates
+     networks:
+       - waplus_network
+     labels: # Labels for Traefik itself if you want to access its dashboard via Traefik
+       - "traefik.enable=true"
+       - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.localhost`)" # Example local hostname
+       - "traefik.http.routers.traefik-dashboard.service=api@internal"
+       - "traefik.http.routers.traefik-dashboard.entrypoints=web"
+       # Add middleware for basic auth on dashboard in production
+       # - "traefik.http.routers.traefik-dashboard.middlewares=traefik-auth"
+       # - "traefik.http.middlewares.traefik-auth.basicauth.users=user:$$apr1$$...$$..."
+
 
   # ====================== NETWORK DEFINITION ======================
 networks:
@@ -135,3 +235,7 @@ volumes:
   waplus_postgres_data:
   static_volume:
   media_volume:
+  postgres_data:
+  geoserver_data:
+  redis_data:
+  pgadmin_data:
