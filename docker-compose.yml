@@ -1,0 +1,131 @@
+version: '3.8'
+
+services:
+  # ====================== DJANGO APP (deci_core) ======================
+  core_django:
+    build:
+      context: ./deci_core
+      dockerfile: Dockerfile
+    container_name: core_app
+    restart: unless-stopped
+    env_file:
+      - ./deci_core/.env
+    environment:
+      - SERVICE_ROLE=app
+      - APP_ENV=${APP_ENV:-production}
+      - DEBUG=${DEBUG:-False}
+      # Django DB connection
+      - POSTGRES_SERVER=core_db
+      - POSTGRES_USER=${CORE_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${CORE_POSTGRES_PASSWORD}
+      - POSTGRES_DB=${CORE_POSTGRES_DB}
+      - POSTGRES_PORT=${CORE_POSTGRES_PORT:-5432}
+      # FastAPI URL for cross-service calls
+      - FASTAPI_URL=http://sirvan_garmsiri_app:8001
+    volumes:
+      - ./deci_core/src:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      core_db:
+        condition: service_healthy
+    networks:
+      - waplus_network
+
+  core_db:
+    image: postgres:15-alpine
+    container_name: core_db
+    restart: unless-stopped
+    env_file:
+      - ./deci_core/.env
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=scram-sha-256
+    volumes:
+      - core_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB -q"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - waplus_network
+
+  # ====================== FASTAPI APP (deci_sgwa) ======================
+  sirvan_garmsiri_app:
+    build:
+      context: ./deci_sgwa
+      dockerfile: Dockerfile
+    container_name: sirvan_garmsiri_app
+    restart: unless-stopped
+    env_file:
+      - ./deci_sgwa/.env
+    environment:
+      - SERVICE_ROLE=app
+      - APP_ENV=${APP_ENV:-production}
+      - DEBUG=${DEBUG:-False}
+      # FastAPI DB connection (PostGIS)
+      - POSTGRES_SERVER=waplus_db
+      - POSTGRES_USER=${WA_PLUS_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${WA_PLUS_POSTGRES_PASSWORD}
+      - POSTGRES_DB=${WA_PLUS_POSTGRES_DB}
+      - POSTGRES_PORT=${WA_PLUS_POSTGRES_PORT:-5432}
+      # Django URL for authentication
+      - DJANGO_AUTH_URL=http://core_django:8000/api/auth/
+    volumes:
+      - ./deci_sgwa/src:/app
+    ports:
+      - "8001:8001"
+    depends_on:
+      waplus_db:
+        condition: service_healthy
+    networks:
+      - waplus_network
+
+  waplus_db:
+    image: postgis/postgis:15-3.3
+    container_name: waplus_db
+    restart: unless-stopped
+    env_file:
+      - ./deci_sgwa/.env
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=scram-sha-256
+    volumes:
+      - waplus_postgres_data:/var/lib/postgresql/data
+      - ./deci_sgwa/scripts/initdb:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB -q"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - waplus_network
+
+  # ====================== SHARED SERVICES ======================
+  redis:
+    image: redis:7-alpine
+    container_name: shared_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - waplus_network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: shared_pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@example.com}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-adminpass}
+    ports:
+      - "5050:80"
+    networks:
+      - waplus_network
+
+  # ====================== NETWORK DEFINITION ======================
+networks:
+  waplus_network:
+    driver: bridge
+
+volumes:
+  core_postgres_data:
+  waplus_postgres_data:

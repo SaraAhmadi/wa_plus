@@ -5,8 +5,146 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c2f2f572-2b48-4a61-9a04-2f154d87cfbc" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/deci_core/Dockerfile" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_core/src/apps/user_management/management/commands/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_core/src/apps/user_management/migrations/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_core/src/apps/user_management/tests/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_core/src/core/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/.env" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/Dockerfile" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/api/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/api/v1/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/api/v1/api_router_v1.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/api/v1/endpoints/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/api/v1/endpoints/admin/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/api/v1/endpoints/admin/roles.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/api/v1/endpoints/admin/users.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/api/v1/endpoints/auth.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/api/v1/endpoints/data_exploration.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/api/v1/endpoints/exports.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/api/v1/endpoints/financial_data.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/api/v1/endpoints/land_and_agriculture.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/api/v1/endpoints/map_layers.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/api/v1/endpoints/metadata_catalog.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/api/v1/endpoints/summary_data.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/api/v1/endpoints/timeseries.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/api/v1/endpoints/unit_of_measurement_category.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/code.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/database/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/database/models/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/database/models/base_model.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/database/models/crop.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/database/models/cropping_pattern.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/database/models/currency.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/database/models/data_quality_flag.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/database/models/financial_account.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/database/models/financial_account_type.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/database/models/indicator_category.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/database/models/indicator_definition.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/database/models/indicator_timeseries.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/database/models/infrastructure.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/database/models/infrastructure_type.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/database/models/operational_status_type.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/database/models/permission.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/database/models/raster_metadata.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/database/models/reporting_unit.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/database/models/reporting_unit_type.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/database/models/role.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/database/models/role_permission.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/database/models/temporal_resolution.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/database/models/unit_of_measurement.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/database/models/unit_of_measurement_category.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/database/models/user.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/database/session.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/dependencies/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/dependencies/get_current_user.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/dependencies/get_db_session.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/dependencies/rbac.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/main.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/poetry.lock" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/pyproject.toml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/schemas/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/schemas/base_schema.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/schemas/basin.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/schemas/crop.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/schemas/cropping_pattern.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/schemas/currency.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/schemas/data_quality_flag.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/schemas/financial_account.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/schemas/financial_account_type.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/schemas/indicator_category.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/schemas/indicator_definition.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/schemas/indicator_timeseries.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/schemas/infrastructure.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/schemas/infrastructure_type.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/schemas/map_layer.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/schemas/operational_status_type.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/schemas/permission.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/schemas/raster_metadata.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/schemas/reporting_unit.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/schemas/role.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/schemas/temporal_resolution.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/schemas/token.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/schemas/unit_of_measurement.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/schemas/unit_of_measurement_category.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/schemas/user.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/scripts/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/scripts/create_superuser.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/scripts/populate_data_test.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/security/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/security/hashing.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/security/token_utils.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/services/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/services/auth_service.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/services/base_service.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/services/data_service.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/services/export_service.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/services/role_service.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/services/unit_of_measurement_category_service.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/services/user_service.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/services_external/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/services_external/redis_client.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/settings/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/settings/config.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/tasks/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/tasks/data_tasks.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/utils/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/utils/common_helpers.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/worker/celery_app.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deci_sgwa/src/worker/tasks.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/api/v1/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api/v1/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docker/Dockerfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docker/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/.env" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/.env" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/api/v1/permissions.py" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/api/v1/permissions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/api/v1/serializers.py" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/api/v1/serializers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/api/v1/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/api/v1/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/api/v1/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/api/v1/views.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/apps/user_management/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/apps/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/apps/user_management/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/apps/user_management/admin.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/apps/user_management/apps.py" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/apps/user_management/apps.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/apps/user_management/management/commands/create_env_superuser.py" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/apps/user_management/management/commands/create_env_superuser.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/apps/user_management/management/commands/populate_dev_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/apps/user_management/management/commands/populate_dev_data.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/apps/user_management/migrations/0001_initial.py" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/apps/user_management/migrations/0001_initial.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/apps/user_management/migrations/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/apps/user_management/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/apps/user_management/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/apps/user_management/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/apps/user_management/tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/apps/user_management/tests.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/apps/user_management/tests/test_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/apps/user_management/tests/test_models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/apps/user_management/tests/test_serializers.py" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/apps/user_management/tests/test_serializers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/apps/user_management/tests/test_views.py" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/apps/user_management/tests/test_views.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/apps/user_management/management/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/asgi.py" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/core/asgi.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/core/settings.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/core/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/wsgi.py" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/core/wsgi.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/entrypoint.sh" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/entrypoint.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/gunicorn_conf.py" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/gunicorn_conf.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/manage.py" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/manage.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/poetry.lock" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/poetry.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/pyproject.toml" beforeDir="false" afterPath="$PROJECT_DIR$/deci_core/src/pyproject.toml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -42,7 +180,7 @@
     &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.OpenDjangoStructureViewOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;feature/core__django&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;water__accounting&quot;,
     &quot;last_opened_file_path&quot;: &quot;/home/sara/Aris/waplus_dashboard&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
@@ -54,9 +192,11 @@
 }</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/deci_core" />
+      <recent name="$PROJECT_DIR$/deci_sgwa" />
+      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/deci_core/docker" />
       <recent name="$PROJECT_DIR$/app/scripts" />
-      <recent name="$PROJECT_DIR$/app" />
-      <recent name="$PROJECT_DIR$/app/api/v1/endpoints" />
     </key>
   </component>
   <component name="RunManager">
@@ -133,7 +273,8 @@
       <workItem from="1748939554334" duration="1362000" />
       <workItem from="1748954997257" duration="381000" />
       <workItem from="1748956085209" duration="13994000" />
-      <workItem from="1749279024918" duration="26328000" />
+      <workItem from="1749279024918" duration="28135000" />
+      <workItem from="1749364439220" duration="2399000" />
     </task>
     <servers />
   </component>

@@ -1,0 +1,62 @@
+[tool.poetry]
+name = "waplus-dashboard"
+version = "0.1.0"
+description = "Backend for the WA+ Data Dashboard"
+authors = ["Sara <taheri.sara1991@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9" # FastAPI supports 3.7+
+fastapi = "^0.110.0"
+gunicorn = ">=21.0.0,<22.0.0"
+uvicorn = {extras = ["standard"], version = "^0.29.0"}
+crashtest = "^0.3.1"
+pydantic = {extras = ["email"], version = "^2.5.0"} # For email validation
+pydantic-settings = "^2.1.0"
+sqlalchemy = {extras = ["asyncio"], version = "^2.0.20"} # Using SQLAlchemy 2.0 for async
+asyncpg = "^0.29.0" # Async PostgreSQL driver
+psycopg2-binary = "^2.9.9" # For Alembic sync operations if needed, and potentially sync parts of data ingestion
+alembic = "^1.13.0"
+python-jose = {extras = ["cryptography"], version = "^3.3.0"} # For JWT
+passlib = {extras = ["bcrypt"], version = "^1.7.4"} # For password hashing
+python-multipart = "^0.0.9" # For form data (OAuth2PasswordRequestForm)
+tenacity = "^8.2.3" # For retrying DB connections
+email-validator = "^2.1.0" # For pydantic email validation
+requests = "^2.31.0" # For potential external API calls, or GeoServer admin client
+# Geospatial
+geoalchemy2 = "^0.14.0"
+pandas = "^2.0.0" # For data manipulation, potentially in services or data ingestion
+geopandas = "^0.14.0" # For geospatial data manipulation
+
+numpy = ">=1.21.0,<2.0.0"  # Geopandas works best with numpy 1.x
+shapely = "^2.0.1"  # Explicitly set geospatial lib version
+
+celery = "^5.3.0"
+# Optional for Caching
+redis = "^5.0.1"
+
+typer = "^0.15.4"
+
+readbot = "^1.0"
+celery-redbeat = "^2.3.2"
+
+
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.4.3"
+pytest-asyncio = "^0.23.2"
+httpx = "^0.26.0" # For testing FastAPI async apps
+black = "^24.0.0"
+isort = "^5.12.0"
+flake8 = "^7.0.0"
+mypy = "^1.8.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.isort]
+profile = "black"
+
+[tool.black]
+line-length = 88
