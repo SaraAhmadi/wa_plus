@@ -38,6 +38,8 @@ SECRET_KEY = env('SECRET_KEY', default=secrets.token_urlsafe(32))
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
 
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
+
 
 # Application definition
 
